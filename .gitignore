@@ -1,0 +1,7 @@
+/*.ir
+/src/
+.direnv/
+result
+runs/
+tt_submission/
+gds_render.png
