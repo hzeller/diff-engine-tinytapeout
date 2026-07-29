@@ -17,19 +17,22 @@ module tt_um_lromor_xls (
 );
 
   // XLS-generated core (src/main.sv, produced from main.x by `make`).
+  wire [23:0] core_out;
+
   xls_main core (
-      .clk  (clk),
-      .rst_n(rst_n),
-      .a    (ui_in[3:0]),
-      .b    (ui_in[7:4]),
-      .out  (uo_out)
+      .clk   (clk),
+      .rst_n (rst_n),
+      .ui_in (ui_in),
+      .uio_in(uio_in),
+      .out   (core_out)
   );
 
-  // Bidirectional pins unused.
-  assign uio_out = 8'b0;
-  assign uio_oe  = 8'b0;
+  // DSLX tuple (uo_out, uio_out, uio_oe): element 0 lands in the MSBs.
+  assign uo_out  = core_out[23:16];
+  assign uio_out = core_out[15:8];
+  assign uio_oe  = core_out[7:0];
 
   // Avoid unused-signal warnings.
-  wire _unused = &{ena, uio_in, 1'b0};
+  wire _unused = &{ena, 1'b0};
 
 endmodule
