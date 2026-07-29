@@ -1,14 +1,19 @@
 `default_nettype none
 
 module tt_um_lromor_xls (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
+    // Inputs
     input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+    input  wire       rst_n,    // reset, active low
+    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
+    input  wire [7:0] ui_in,    // dedicated inputs
+
+    // Outputs
+    output wire [7:0] uo_out,   // dedicated outputs
+
+    // Bidirectional pins
+    input  wire [7:0] uio_in,   // input path
+    output wire [7:0] uio_out,  // output path
+    output wire [7:0] uio_oe    // enable path (active high: 0=input, 1=output)
 );
 
   // XLS-generated core (src/main.sv, produced from main.x by `make`).
