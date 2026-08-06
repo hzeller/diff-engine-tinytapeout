@@ -1,13 +1,10 @@
+# FPGA leg: minimal yosys + VTR(VPR) + fpga-assembler flow for Artix-7.
+# Enter with `nix develop .#fpga`, then `make` in this directory.
+{ ... }:
 {
-  description = "Minimal yosys + VTR(VPR) + fpga-assembler flow for Artix-7";
-
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-  outputs = { self, nixpkgs }:
+  perSystem =
+    { pkgs, ... }:
     let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-
       # Schema the interchange build normally wgets from GitHub; pre-placed
       # in the build dir so the download rule never runs (no sandbox network).
       javaCapnp = pkgs.fetchurl {
@@ -124,11 +121,11 @@
       };
     in
     {
-      packages.${system} = {
+      packages = {
         inherit vtr yosys-f4pga arch-defs;
       };
 
-      devShells.${system}.default = pkgs.mkShell {
+      devShells.fpga = pkgs.mkShell {
         # The whole flow: yosys -> vpr -> genfasm -> fpga-as (built in the
         # fpga-assembler repo). python3 is stdlib-only, for the two vendored
         # scripts synth.tcl calls.
