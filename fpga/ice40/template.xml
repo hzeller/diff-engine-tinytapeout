@@ -108,6 +108,10 @@
 
     <pb_type name="plb">
       <!--
+        Vendored leaf cells to compose from: primitives/*.xml (sb_lut,
+        sb_ff, sb_carry, sb_io — see primitives/README.md). Their content
+        gets inlined/adapted here; the composition is the work.
+
         TODO(lromor): THE exercise. Questions your model must answer:
           1. The PLB holds 8 logic cells. What is one logic cell, as a
              pb_type? (LUT4 + DFF + the mux that selects registered or

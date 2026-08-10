@@ -1,0 +1,710 @@
+<!-- set: ai sw=1 ts=1 sta et -->
+<!-- Flip flop found inside the iCE40 -->
+<pb_type name="SB_FF" num_pb="1">
+ <clock  name="PCLK"        num_pins="1"/>
+ <clock  name="NCLK"        num_pins="1"/>
+ <clock  name="PCLK+CEN"    num_pins="1"/>
+ <clock  name="NCLK+CEN"    num_pins="1"/>
+ <clock  name="PCLK+SR"     num_pins="1"/>
+ <clock  name="NCLK+SR"     num_pins="1"/>
+ <clock  name="PCLK+CEN+SR" num_pins="1"/>
+ <clock  name="NCLK+CEN+SR" num_pins="1"/>
+
+ <input  name="E" num_pins="1"/>
+ <input  name="S" num_pins="1"/>
+ <input  name="R" num_pins="1"/>
+ <input  name="D" num_pins="1"/>
+ <output name="Q" num_pins="1"/>
+
+ <!-- Plain VPR flip flop -->
+ <mode name="VPR_FF">
+  <pb_type name="VPR_FF" num_pb="1" blif_model=".latch" class="flipflop">
+   <clock  name="clk" num_pins="1" port_class="clock" />
+   <input  name="D"   num_pins="1" port_class="D"     />
+   <output name="Q"   num_pins="1" port_class="Q"     />
+   <T_setup    value="10e-12" port="D" clock="clk"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="clk"/>
+   <metadata>
+    <meta name="hlc_property"># VPR_FF - $_DFF_P_</meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK"/><port type="output" from="VPR_FF" name="clk"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="VPR_FF" name="D"/>
+    <pack_pattern name="LUT+FFA"/>
+   </direct>
+   <direct><port type="input" from="VPR_FF" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFF (output Q, input C, D); -->
+ <mode name="SB_DFF">
+  <pb_type name="SB_DFF" num_pb="1" blif_model=".subckt SB_DFF">
+   <clock  name="C" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFF - $_DFF_P_
+        # PosClk
+        # no_cen
+        # no_setreset
+        # --
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK"/><port type="output" from="SB_DFF" name="C"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFF" name="D"/>
+    <pack_pattern name="LUT+FFB"/>
+   </direct>
+   <direct><port type="input" from="SB_DFF" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFE (output Q, input C, E, D); -->
+ <mode name="SB_DFFE">
+  <pb_type name="SB_DFFE" num_pb="1" blif_model=".subckt SB_DFFE">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFE - $_DFFE_PN_
+        # PosClk
+        # use_cen
+        # no_setreset
+        # --
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+CEN"/><port type="output" from="SB_DFFE" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFE" name="E"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFE" name="D"/>
+    <pack_pattern name="LUT+FFC"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFE" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFER (output Q, input C, E, R, D); -->
+ <mode name="SB_DFFER">
+  <pb_type name="SB_DFFER" num_pb="1" blif_model=".subckt SB_DFFER">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFER - $_DFFE_PN0
+        # PosClk
+        # use_cen
+        async_setreset
+        # reset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+CEN+SR"/><port type="output" from="SB_DFFER" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFER" name="E"/></direct>
+   <direct><port type="input" name="R"/><port type="output" from="SB_DFFER" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFER" name="D"/>
+    <pack_pattern name="LUT+FFD"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFER" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFES (output Q, input C, E, S, D); -->
+ <mode name="SB_DFFES">
+  <pb_type name="SB_DFFES" num_pb="1" blif_model=".subckt SB_DFFES">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # SB_DFFES - $_DFFE_PN1
+        # PosClk
+        # use_cen
+        async_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+CEN+SR"/><port type="output" from="SB_DFFES" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFES" name="E"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFES" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFES" name="D"/>
+    <pack_pattern name="LUT+FFE"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFES" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFESR (output Q, input C, E, R, D); -->
+ <mode name="SB_DFFESR">
+  <pb_type name="SB_DFFESR" num_pb="1" blif_model=".subckt SB_DFFESR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFESR
+        # PosClk
+        # use_cen
+        # sync_setreset
+        # reset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+CEN+SR"/><port type="output" from="SB_DFFESR" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFESR" name="E"/></direct>
+   <direct><port type="input" name="R"/><port type="output" from="SB_DFFESR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFESR" name="D"/>
+    <pack_pattern name="LUT+FFF"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFESR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFESS (output Q, input C, E, S, D); -->
+ <mode name="SB_DFFESS">
+  <pb_type name="SB_DFFESS" num_pb="1" blif_model=".subckt SB_DFFESS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFESS
+        # PosClk
+        # use_cen
+        # sync_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+CEN+SR"/><port type="output" from="SB_DFFESS" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFESS" name="E"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFESS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFESS" name="D"/>
+    <pack_pattern name="LUT+FFG"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFESS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFR (output Q, input C, R, D); -->
+ <mode name="SB_DFFR">
+  <pb_type name="SB_DFFR" num_pb="1" blif_model=".subckt SB_DFFR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFR
+        # PosClk
+        # no_cen
+        async_setreset
+        # reset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+SR"/><port type="output" from="SB_DFFR" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFR" name="D"/>
+    <pack_pattern name="LUT+FFH"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFS (output Q, input C, S, D); -->
+ <mode name="SB_DFFS">
+  <pb_type name="SB_DFFS" num_pb="1" blif_model=".subckt SB_DFFS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFS
+        # PosClk
+        # no_cen
+        async_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+SR"/><port type="output" from="SB_DFFS" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFS" name="D"/>
+    <pack_pattern name="LUT+FFI"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFSR (output Q, input C, R, D); -->
+ <mode name="SB_DFFSR">
+  <pb_type name="SB_DFFSR" num_pb="1" blif_model=".subckt SB_DFFSR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFSR
+        # PosClk
+        # no_cen
+        # sync_setreset
+        # reset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+SR"/><port type="output" from="SB_DFFSR" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFSR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFSR" name="D"/>
+    <pack_pattern name="LUT+FFJ"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFSR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFSS (output Q, input C, S, D); -->
+ <mode name="SB_DFFSS">
+  <pb_type name="SB_DFFSS" num_pb="1" blif_model=".subckt SB_DFFSS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFSS
+        # PosClk
+        # no_cen
+        # sync_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="PCLK+SR"/><port type="output" from="SB_DFFSS" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFSS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFSS" name="D"/>
+    <pack_pattern name="LUT+FFK"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFSS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFN (output Q, input C, D); -->
+ <mode name="SB_DFFN">
+  <pb_type name="SB_DFFN" num_pb="1" blif_model=".subckt SB_DFFN">
+   <clock  name="C" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFN
+        # NegClk
+        # no_cen
+        # no_setreset
+        # --
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK"/><port type="output" from="SB_DFFN" name="C" /></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFN" name="D" />
+    <pack_pattern name="LUT+FFL"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFN" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNE (output Q, input C, E, D); -->
+ <mode name="SB_DFFNE">
+  <pb_type name="SB_DFFNE" num_pb="1" blif_model=".subckt SB_DFFNE">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNE
+        # NegClk
+        # use_cen
+        # no_setreset
+        # --
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+CEN"/><port type="output" from="SB_DFFNE" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFNE" name="E"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNE" name="D"/>
+    <pack_pattern name="LUT+FFM"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNE" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNER (output Q, input C, E, R, D); -->
+ <mode name="SB_DFFNER">
+  <pb_type name="SB_DFFNER" num_pb="1" blif_model=".subckt SB_DFFNER">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNER
+        # NegClk
+        # use_cen
+        async_setreset
+        # reset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+CEN+SR"/><port type="output" from="SB_DFFNER" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFNER" name="E"/></direct>
+   <direct><port type="input" name="R"/><port type="output" from="SB_DFFNER" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNER" name="D"/>
+    <pack_pattern name="LUT+FFN"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNER" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNES (output Q, input C, E, R, D); -->
+ <mode name="SB_DFFNES">
+  <pb_type name="SB_DFFNES" num_pb="1" blif_model=".subckt SB_DFFNES">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNES
+        # NegClk
+        # use_cen
+        async_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+CEN+SR"/><port type="output" from="SB_DFFNES" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFNES" name="E"/></direct>
+   <direct><port type="input" name="R"/><port type="output" from="SB_DFFNES" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNES" name="D"/>
+    <pack_pattern name="LUT+FFO"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNES" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNESR (output Q, input C, E, R, D); -->
+ <mode name="SB_DFFNESR">
+  <pb_type name="SB_DFFNESR" num_pb="1" blif_model=".subckt SB_DFFNESR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNESR
+        # NegClk
+        # use_cen
+        # sync_setreset
+        # reset
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+CEN+SR"/><port type="output" from="SB_DFFNESR" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFNESR" name="E"/></direct>
+   <direct><port type="input" name="R"/><port type="output" from="SB_DFFNESR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNESR" name="D"/>
+    <pack_pattern name="LUT+FFP"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNESR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNESS (output Q, input C, E, S, D); -->
+ <mode name="SB_DFFNESS">
+  <pb_type name="SB_DFFNESS" num_pb="1" blif_model=".subckt SB_DFFNESS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="E" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="E" clock="C"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNESS
+        # NegClk
+        # use_cen
+        # sync_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+CEN+SR"/><port type="output" from="SB_DFFNESS" name="C"/></direct>
+   <direct><port type="input" name="E"/><port type="output" from="SB_DFFNESS" name="E"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFNESS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNESS" name="D"/>
+    <pack_pattern name="LUT+FFQ"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNESS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNR (output Q, input C, R, D); -->
+ <mode name="SB_DFFNR">
+  <pb_type name="SB_DFFNR" num_pb="1" blif_model=".subckt SB_DFFNR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNR
+        # NegClk
+        # no_cen
+        async_setreset
+        # reset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+SR"/><port type="output" from="SB_DFFNR" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFNR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNR" name="D"/>
+    <pack_pattern name="LUT+FFR"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNS (output Q, input C, S, D); -->
+ <mode name="SB_DFFNS">
+  <pb_type name="SB_DFFNS" num_pb="1" blif_model=".subckt SB_DFFNS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNS
+        # NegClk
+        # no_cen
+        async_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      AsyncSetReset
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+SR"/><port type="output" from="SB_DFFNS" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFNS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNS" name="D"/>
+    <pack_pattern name="LUT+FFS"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNSR (output Q, input C, R, D); -->
+ <mode name="SB_DFFNSR">
+  <pb_type name="SB_DFFNSR" num_pb="1" blif_model=".subckt SB_DFFNSR">
+   <clock  name="C" num_pins="1"/>
+   <input  name="R" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="R" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNSR
+        # NegClk
+        # no_cen
+        # sync_setreset
+        # reset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+SR"/><port type="output" from="SB_DFFNSR" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFNSR" name="R"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNSR" name="D"/>
+    <pack_pattern name="LUT+FFT"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNSR" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+
+ <!-- module SB_DFFNSS (output Q, input C, S, D); -->
+ <mode name="SB_DFFNSS">
+  <pb_type name="SB_DFFNSS" num_pb="1" blif_model=".subckt SB_DFFNSS">
+   <clock  name="C" num_pins="1"/>
+   <input  name="S" num_pins="1"/>
+   <input  name="D" num_pins="1"/>
+   <output name="Q" num_pins="1"/>
+   <T_setup    value="10e-12" port="S" clock="C"/>
+   <T_setup    value="10e-12" port="D" clock="C"/>
+   <T_clock_to_Q max="10e-12" port="Q" clock="C"/>
+   <metadata>
+    <meta name="hlc_property">
+        # - SB_DFFNSS
+        # NegClk
+        # no_cen
+        # sync_setreset
+        set_noreset
+    </meta>
+    <meta name="fasm_features">
+      Set_NoReset
+    </meta>
+   </metadata>
+  </pb_type>
+  <interconnect>
+   <direct><port type="input" name="NCLK+SR"/><port type="output" from="SB_DFFNSS" name="C"/></direct>
+   <direct><port type="input" name="S"/><port type="output" from="SB_DFFNSS" name="S"/></direct>
+   <direct><port type="input" name="D"/><port type="output" from="SB_DFFNSS" name="D"/>
+    <pack_pattern name="LUT+FFU"/>
+   </direct>
+   <direct><port type="input" from="SB_DFFNSS" name="Q" /><port type="output" name="Q"/></direct>
+  </interconnect>
+ </mode>
+ <metadata>
+  <meta name="type">bel</meta>
+  <meta name="subtype">flipflop</meta>
+ </metadata>
+</pb_type>

@@ -1,0 +1,14 @@
+<!-- set: ai sw=1 ts=1 sta et -->
+<!-- Carry logic found in the ICE40 -->
+<pb_type name="SB_CARRY" num_pb="1" blif_model=".subckt SB_CARRY">
+ <input  name="I1" num_pins="1"/>
+ <input  name="CI" num_pins="1"/>
+ <input  name="I0" num_pins="1"/>
+ <output name="CO" num_pins="1"/>
+ <delay_constant max="10e-12" in_port="CI" out_port="CO"/>
+ <delay_constant max="10e-12" in_port="I1" out_port="CO"/>
+ <delay_constant max="10e-12" in_port="I0" out_port="CO"/>
+ <metadata>
+  <meta name="hlc_property">enable_carry</meta>
+ </metadata>
+</pb_type>
