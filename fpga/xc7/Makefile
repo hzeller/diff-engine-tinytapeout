@@ -1,5 +1,5 @@
 # Verilog -> yosys -> VPR (pack/place/route) -> genfasm -> fpga-as -> .bit
-# Tools and data come from the dev shell (`nix develop .#fpga`, defined in
+# Tools and data come from the dev shell (`nix develop .#xc7`, defined in
 # flake-module.nix): vpr, genfasm, yosys, python3, and the env vars
 # ARCH_DIR, TECHMAP_PATH, PRJXRAY_DB.
 

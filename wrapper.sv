@@ -34,5 +34,4 @@ module tt_um_lromor_xls (
 
   // Avoid unused-signal warnings.
   wire _unused = &{ena, 1'b0};
-
 endmodule

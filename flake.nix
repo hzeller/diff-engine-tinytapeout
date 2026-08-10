@@ -16,7 +16,6 @@
       imports = [
         # Repo submodules defining their own flake outputs.
         ./fpga/flake-module.nix
-        ./ice40/flake-module.nix
       ];
 
       systems = [ "x86_64-linux" ];

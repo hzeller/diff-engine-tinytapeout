@@ -1,7 +1,6 @@
 
-// Placeholder design: sum of the two ui_in nibbles, 8-bit result.
-// The full Tiny Tapeout interface flows through here; the Verilog wrapper
-// is a dumb adapter. Replace with the real design.
+
+
 pub fn main(ui_in: u8, uio_in: u8) -> (u8, u8, u8) {
     let uo_out = (ui_in[0+:u4] as u8) + (ui_in[4+:u4] as u8);
     let uio_out = u8:0;
