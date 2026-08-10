@@ -65,8 +65,12 @@
 
   <switchlist>
     <!-- TODO: delays from icetime. -->
-    <switch type="mux" name="routing_switch" R="0" Cin="0" Cout="0" Tdel="200e-12" mux_trans_size="1" buf_size="auto"/>
-    <switch type="mux" name="ipin_cblock" R="0" Cin="0" Cout="0" Tdel="100e-12" mux_trans_size="1" buf_size="auto"/>
+    <!-- Delays imported from the icetime db by scripts/chipdb_timing.py
+         (worst typical case; see timing-report.txt). Separate switches per
+         wire species since span4/span12 drivers differ. -->
+    <switch type="mux" name="span4_mux" R="0" Cin="0" Cout="0" Tdel="@SPAN4_TDEL@" mux_trans_size="1" buf_size="auto"/>
+    <switch type="mux" name="span12_mux" R="0" Cin="0" Cout="0" Tdel="@SPAN12_TDEL@" mux_trans_size="1" buf_size="auto"/>
+    <switch type="mux" name="ipin_cblock" R="0" Cin="0" Cout="0" Tdel="@IPIN_TDEL@" mux_trans_size="1" buf_size="auto"/>
   </switchlist>
 
   <segmentlist>
@@ -74,12 +78,12 @@
          frequencies below are milestone-1 guesses to refine against the
          chipdb (count the real wires per channel!). -->
     <segment name="span4" freq="0.7" length="4" type="unidir" Rmetal="0" Cmetal="0">
-      <mux name="routing_switch"/>
+      <mux name="span4_mux"/>
       <sb type="pattern">1 1 1 1 1</sb>
       <cb type="pattern">1 1 1 1</cb>
     </segment>
     <segment name="span12" freq="0.3" length="12" type="unidir" Rmetal="0" Cmetal="0">
-      <mux name="routing_switch"/>
+      <mux name="span12_mux"/>
       <sb type="pattern">1 1 1 1 1 1 1 1 1 1 1 1 1</sb>
       <cb type="pattern">1 1 1 1 1 1 1 1 1 1 1 1</cb>
     </segment>

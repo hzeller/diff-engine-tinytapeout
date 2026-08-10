@@ -1,0 +1,49 @@
+# extracted from /nix/store/n31j24jdpbh540vw25b4qqmv8r7kwxj4-icestorm-0-unstable-2025-06-03/share/icebox/timings_lp8k.txt (picoseconds, min:typ:max)
+# routing numbers used in the arch:
+#   span4 mux (worst typ):  450.5 ps
+#   span12 mux (worst typ): 654.5 ps
+#   ipin (LocalMux+InMux):  714.0 ps
+#
+# LogicCell40 — reference for pb_type delay annotations:
+HOLD      negedge:ce   posedge:clk  0:0:0
+HOLD      negedge:in0  posedge:clk  0:0:0
+HOLD      negedge:in1  posedge:clk  0:0:0
+HOLD      negedge:in2  posedge:clk  0:0:0
+HOLD      negedge:in3  posedge:clk  0:0:0
+HOLD      negedge:sr   posedge:clk  -184.184:-239.275:-290.984
+HOLD      posedge:ce   posedge:clk  0:0:0
+HOLD      posedge:in0  posedge:clk  0:0:0
+HOLD      posedge:in1  posedge:clk  0:0:0
+HOLD      posedge:in2  posedge:clk  0:0:0
+HOLD      posedge:in3  posedge:clk  0:0:0
+HOLD      posedge:sr   posedge:clk  -167.106:-217.09:-264.005
+RECOVERY  negedge:sr   posedge:clk  148.983:193.545:235.372
+RECOVERY  posedge:sr   posedge:clk  0:0:0
+REMOVAL   negedge:sr   posedge:clk  0:0:0
+REMOVAL   posedge:sr   posedge:clk  0:0:0
+SETUP     negedge:ce   posedge:clk  0:0:0
+SETUP     negedge:in0  posedge:clk  372.947:484.5:589.205
+SETUP     negedge:in1  posedge:clk  353.318:459:558.194
+SETUP     negedge:in2  posedge:clk  300.975:391:475.498
+SETUP     negedge:in3  posedge:clk  202.831:263.5:320.445
+SETUP     negedge:sr   posedge:clk  130.859:170:206.738
+SETUP     posedge:ce   posedge:clk  0:0:0
+SETUP     posedge:in0  posedge:clk  438.376:569.5:692.574
+SETUP     posedge:in1  posedge:clk  372.947:484.5:589.205
+SETUP     posedge:in2  posedge:clk  346.775:450.5:547.857
+SETUP     posedge:in3  posedge:clk  255.174:331.5:403.14
+SETUP     posedge:sr   posedge:clk  189.745:246.5:299.771
+IOPATH    carryin      carryout     117.773:153:186.065  98.144:127.5:155.054
+IOPATH    in0          lcout        418.748:544:661.563  359.861:467.5:568.531
+IOPATH    in0          ltout        340.232:442:537.52  359.861:467.5:568.531
+IOPATH    in1          carryout     242.088:314.5:382.466  229.003:297.5:361.792
+IOPATH    in1          lcout        372.947:484.5:589.205  353.318:459:558.194
+IOPATH    in1          ltout        300.975:391:475.498  353.318:459:558.194
+IOPATH    in2          carryout     215.917:280.5:341.118  124.316:161.5:196.402
+IOPATH    in2          lcout        353.318:459:558.194  327.147:425:516.846
+IOPATH    in2          ltout        287.889:374:454.825  320.604:416.5:506.509
+IOPATH    in3          lcout        294.432:382.5:465.161  268.26:348.5:423.814
+IOPATH    in3          ltout        248.631:323:392.803  255.174:331.5:403.14
+IOPATH    posedge:clk  lcout        503.806:654.5:795.943  503.806:654.5:795.943
+IOPATH    sr           lcout        0:0:0  558.989:726.189:883.125
+IOPATH    sr           lcout        558.963:726.155:883.083  0:0:0
