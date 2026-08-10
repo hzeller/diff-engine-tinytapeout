@@ -10,6 +10,8 @@
           self'.packages.vtr
           pkgs.icestorm
           pkgs.python3
+          # Generic LUT4 synthesis for the milestone-1 smoke test.
+          pkgs.yosys
         ];
         ICESTORM = "${pkgs.icestorm}";
       };

@@ -10,11 +10,20 @@ arch.xml: template.xml scripts/chipdb_layout.py scripts/chipdb_timing.py
 	python3 scripts/chipdb_timing.py --timings $(TIMINGS) --input arch.tmp.xml --output $@ --report timing-report.txt
 	rm -f arch.tmp.xml
 
+counter.blif: counter.v
+	yosys -q -p "read_verilog counter.v; synth -flatten -lut 4; opt_clean; write_blif $@"
+
+# The milestone-1 referee: pack, place and route the counter on the model.
+run: arch.xml counter.blif
+	vpr arch.xml counter.blif --route_chan_width 100 --clock_modeling route
+
 check: arch.xml
 	python3 -c "import xml.etree.ElementTree as ET; ET.parse('arch.xml'); print('arch.xml: well-formed XML')"
-	@echo "note: full VPR validation is blocked on the plb/io pb_types (template.xml TODOs)."
 
 clean:
-	rm -f arch.xml arch.tmp.xml timing-report.txt
+	rm -f arch.xml arch.tmp.xml timing-report.txt counter.blif
+	rm -f *.net *.place *.route vpr_stdout.log *.rpt packing_pin_util.rpt pre_pack.report_timing.setup.rpt
+
+.PHONY: run
 
 .PHONY: check clean

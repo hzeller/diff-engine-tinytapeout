@@ -1,45 +1,53 @@
 <!--
-  VPR architecture template for the iCE40 LP8K (milestone 1: approximate
-  routing, IO + PLB tiles only). The @WIDTH@/@HEIGHT@/@LAYOUT@ markers are
-  filled by scripts/chipdb_layout.py from the icestorm chipdb.
+  VPR architecture template for the iCE40 LP8K, milestone 1.
 
-  This file is deliberately incomplete: the PLB pb_type (and the tile pin
-  lists that depend on it) are the design exercise. Guiding references:
-    - icestorm "Logic Tile" documentation and the Lattice iCE40 LP/HX
-      family handbook (logic cell = LUT4 + carry + DFF).
-    - VPR architecture reference: tiles, pb_type, interconnect, directlist.
-  VPR will reject this file until the TODO sections are written.
+  Scope: approximate routing (span4/span12 generative model), PLB with
+  8x (LUT4 + DFF) logic cells mapped from generic .names/.latch netlists
+  (yosys `synth -lut 4`). Deliberately NOT modeled yet, tracked for
+  milestone 2 alongside the exact rr_graph capture:
+    - carry chains (SB_CARRY + directlist between vertical PLB neighbors)
+    - SB_* cell mapping (synth_ice40 netlists; vendored primitives/)
+    - BRAM, global clock networks, io standards
+  Timing: routing delays from the icetime db via scripts/chipdb_timing.py
+  (@SPAN4_TDEL@ etc.); logic delays below are typ values from
+  timings_lp8k.txt (see timing-report.txt).
+
+  The @WIDTH@/@HEIGHT@/@LAYOUT@ markers are filled by
+  scripts/chipdb_layout.py from the icestorm chipdb.
 -->
 <architecture>
 
-  <models>
-    <!-- LUTs (.names) and flip-flops (.latch) are VPR builtins; no extra
-         models needed until BRAM shows up in a later milestone. -->
-  </models>
+  <models/>
 
   <tiles>
-    <!-- TODO(lromor): pin lists must mirror the pb_type ports you define
-         below. Decide: how many of the PLB's LUT inputs are reachable from
-         general routing per logic cell, and what does the carry chain use
-         instead of the channel? -->
     <tile name="io">
       <sub_tile name="io" capacity="2">
         <equivalent_sites>
-          <site pb_type="io"/>
+          <site pb_type="io" pin_mapping="direct"/>
         </equivalent_sites>
-        <!-- TODO(lromor): io pins, e.g.
-             <input name="outpad" num_pins="1"/>
-             <output name="inpad" num_pins="1"/>
-             plus <fc> and <pinlocations> -->
+        <input name="outpad" num_pins="1"/>
+        <output name="inpad" num_pins="1"/>
+        <fc in_type="frac" in_val="0.15" out_type="frac" out_val="0.10"/>
+        <!-- Perimeter tiles only have channels on their die-facing sides;
+             offering every pin on every side keeps them all reachable. -->
+        <pinlocations pattern="custom">
+          <loc side="left">io.outpad io.inpad</loc>
+          <loc side="right">io.outpad io.inpad</loc>
+          <loc side="top">io.outpad io.inpad</loc>
+          <loc side="bottom">io.outpad io.inpad</loc>
+        </pinlocations>
       </sub_tile>
     </tile>
     <tile name="plb">
       <sub_tile name="plb">
         <equivalent_sites>
-          <site pb_type="plb"/>
+          <site pb_type="plb" pin_mapping="direct"/>
         </equivalent_sites>
-        <!-- TODO(lromor): plb pins + <fc in/out> + carry chain pins that
-             bypass general routing (see <directlist> below). -->
+        <input name="I" num_pins="32"/>
+        <output name="O" num_pins="8"/>
+        <clock name="clk" num_pins="1"/>
+        <fc in_type="frac" in_val="0.15" out_type="frac" out_val="0.10"/>
+        <pinlocations pattern="spread"/>
       </sub_tile>
     </tile>
   </tiles>
@@ -51,8 +59,6 @@
   </layout>
 
   <device>
-    <!-- TODO: real numbers from icestorm's timings_lp8k.txt (icetime db).
-         Placeholders keep the XML parseable, nothing more. -->
     <sizing R_minW_nmos="8926" R_minW_pmos="16067"/>
     <area grid_logic_tile_area="0"/>
     <chan_width_distr>
@@ -64,19 +70,17 @@
   </device>
 
   <switchlist>
-    <!-- TODO: delays from icetime. -->
     <!-- Delays imported from the icetime db by scripts/chipdb_timing.py
-         (worst typical case; see timing-report.txt). Separate switches per
-         wire species since span4/span12 drivers differ. -->
+         (worst typical case; see timing-report.txt). -->
     <switch type="mux" name="span4_mux" R="0" Cin="0" Cout="0" Tdel="@SPAN4_TDEL@" mux_trans_size="1" buf_size="auto"/>
     <switch type="mux" name="span12_mux" R="0" Cin="0" Cout="0" Tdel="@SPAN12_TDEL@" mux_trans_size="1" buf_size="auto"/>
     <switch type="mux" name="ipin_cblock" R="0" Cin="0" Cout="0" Tdel="@IPIN_TDEL@" mux_trans_size="1" buf_size="auto"/>
   </switchlist>
 
   <segmentlist>
-    <!-- iCE40's real fabric: local tracks + span-4 + span-12 wires. The
-         frequencies below are milestone-1 guesses to refine against the
-         chipdb (count the real wires per channel!). -->
+    <!-- iCE40's fabric: local tracks + span-4 + span-12 wires. Frequencies
+         are still estimates; refine by counting real wires per channel in
+         the chipdb. -->
     <segment name="span4" freq="0.7" length="4" type="unidir" Rmetal="0" Cmetal="0">
       <mux name="span4_mux"/>
       <sb type="pattern">1 1 1 1 1</sb>
@@ -89,43 +93,79 @@
     </segment>
   </segmentlist>
 
-  <directlist>
-    <!-- TODO(lromor): the carry chain. iCE40 carry runs bottom-to-top
-         through the PLB column: cout of (x, y) feeds cin of (x, y+1)
-         without touching general routing. Express it here once your
-         pb_type has the pins, e.g.
-         <direct name="carry" from_pin="plb.cout" to_pin="plb.cin"
-                 x_offset="0" y_offset="1" z_offset="0"/> -->
-  </directlist>
+  <!-- Milestone 2: <directlist> with the carry chain,
+       cout(x,y) -> cin(x,y+1). An empty directlist is rejected by VPR,
+       so the element is absent entirely for now. -->
 
   <complexblocklist>
 
     <pb_type name="io">
-      <!-- TODO(lromor): simplest possible io block: an inpad mode and an
-           outpad mode. Look at how VPR's example architectures model io
-           before inventing more. -->
+      <input name="outpad" num_pins="1"/>
+      <output name="inpad" num_pins="1"/>
+      <mode name="inpad">
+        <pb_type name="inpad" blif_model=".input" num_pb="1">
+          <output name="inpad" num_pins="1"/>
+        </pb_type>
+        <interconnect>
+          <direct name="inpad_ic" input="inpad.inpad" output="io.inpad"/>
+        </interconnect>
+      </mode>
+      <mode name="outpad">
+        <pb_type name="outpad" blif_model=".output" num_pb="1">
+          <input name="outpad" num_pins="1"/>
+        </pb_type>
+        <interconnect>
+          <direct name="outpad_ic" input="io.outpad" output="outpad.outpad"/>
+        </interconnect>
+      </mode>
     </pb_type>
 
     <pb_type name="plb">
-      <!--
-        Vendored leaf cells to compose from: primitives/*.xml (sb_lut,
-        sb_ff, sb_carry, sb_io — see primitives/README.md). Their content
-        gets inlined/adapted here; the composition is the work.
+      <input name="I" num_pins="32"/>
+      <output name="O" num_pins="8"/>
+      <clock name="clk" num_pins="1"/>
 
-        TODO(lromor): THE exercise. Questions your model must answer:
-          1. The PLB holds 8 logic cells. What is one logic cell, as a
-             pb_type? (LUT4 + DFF + the mux that selects registered or
-             combinational output — three primitives, one <mode> or two?)
-          2. The DFF has enable and set/reset. Model them now, or lie
-             for milestone 1 and note the lie?
-          3. How do the 8 cells share inputs? (iCE40: no crossbar like
-             xc7 — check what the routing actually feeds. What does that
-             mean for your <interconnect> between plb ports and cells?)
-          4. Carry: cin -> lc0 -> lc1 -> ... -> lc7 -> cout as <direct>
-             interconnect inside, tile pins outside (see directlist).
-          5. The clock: one clock input for the whole PLB, per-cell
-             clock-enable. Where does polarity selection live?
-      -->
+      <!-- One iCE40 logic cell: LUT4 + DFF + output select.
+           Delays: typ values from timings_lp8k.txt (LogicCell40). -->
+      <pb_type name="lc" num_pb="8">
+        <input name="in" num_pins="4"/>
+        <output name="out" num_pins="1"/>
+        <clock name="clk" num_pins="1"/>
+
+        <pb_type name="lut4" blif_model=".names" num_pb="1" class="lut">
+          <input name="in" num_pins="4" port_class="lut_in"/>
+          <output name="out" num_pins="1" port_class="lut_out"/>
+          <delay_matrix type="max" in_port="lut4.in" out_port="lut4.out">
+            544e-12
+            484.5e-12
+            459e-12
+            382.5e-12
+          </delay_matrix>
+        </pb_type>
+
+        <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
+          <input name="D" num_pins="1" port_class="D"/>
+          <output name="Q" num_pins="1" port_class="Q"/>
+          <clock name="clk" num_pins="1" port_class="clock"/>
+          <T_setup value="569.5e-12" port="ff.D" clock="clk"/>
+          <T_clock_to_Q max="654.5e-12" port="ff.Q" clock="clk"/>
+        </pb_type>
+
+        <interconnect>
+          <direct name="lut_in" input="lc.in" output="lut4.in"/>
+          <direct name="ff_d" input="lut4.out" output="ff.D">
+            <pack_pattern name="ble" in_port="lut4.out" out_port="ff.D"/>
+          </direct>
+          <direct name="ff_clk" input="lc.clk" output="ff.clk"/>
+          <mux name="out_sel" input="ff.Q lut4.out" output="lc.out"/>
+        </interconnect>
+      </pb_type>
+
+      <interconnect>
+        <direct name="lc_in" input="plb.I" output="lc[7:0].in"/>
+        <direct name="lc_out" input="lc[7:0].out" output="plb.O"/>
+        <complete name="clks" input="plb.clk" output="lc[7:0].clk"/>
+      </interconnect>
     </pb_type>
 
   </complexblocklist>

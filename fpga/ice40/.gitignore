@@ -1,1 +1,7 @@
 arch.xml
+counter.blif
+*.net
+*.place
+*.route
+vpr_stdout.log
+*.rpt
