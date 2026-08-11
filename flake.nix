@@ -8,6 +8,11 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+
+    fpga-as = {
+      url = "github:lromor/fpga-as";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

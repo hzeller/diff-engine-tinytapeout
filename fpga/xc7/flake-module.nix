@@ -3,7 +3,7 @@
 { ... }:
 {
   perSystem =
-    { pkgs, ... }:
+    { inputs', pkgs, ... }:
     let
       # Schema the interchange build normally wgets from GitHub; pre-placed
       # in the build dir so the download rule never runs (no sandbox network).
@@ -11,6 +11,8 @@
         url = "https://raw.githubusercontent.com/capnproto/capnproto-java/master/compiler/src/main/schema/capnp/java.capnp";
         sha256 = "1azg78iw5njvqfmhfrwklkpya3pvfh1h5rnzqwkaq1psky2qvi5b";
       };
+
+      fpga-as = inputs'.fpga-as.packages.default;
 
       # VPR + genfasm from the f4pga fork of VTR, pinned to the commit the
       # 2022-09-20 arch-defs artifacts were built against (conda vtr-optimized
@@ -126,10 +128,10 @@
       };
 
       devShells.xc7 = pkgs.mkShell {
-        # The whole flow: yosys -> vpr -> genfasm -> fpga-as (built in the
-        # fpga-assembler repo). python3 is stdlib-only, for the two vendored
-        # scripts synth.tcl calls.
-        packages = [ vtr yosys-f4pga pkgs.python3 ];
+        # The whole flow: yosys -> vpr -> genfasm -> fpga-as. python3 carries
+        # lxml for the vendored ioplace scripts (they parse the .net XML);
+        # everything else in scripts/ is stdlib-only.
+        packages = [ vtr yosys-f4pga (pkgs.python3.withPackages (ps: [ ps.lxml ])) pkgs.openfpgaloader fpga-as ];
         ARCH_DIR = "${arch-defs}/share/f4pga/arch/xc7a50t_test";
         TECHMAP_PATH = "${arch-defs}/share/f4pga/techmaps/xc7_vpr/techmap";
         PRJXRAY_DB = "${prjxray-db}";

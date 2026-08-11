@@ -32,7 +32,17 @@ src/config.json: config.json
 
 test: main.test
 
+# Build (and flash) the current DSLX design for the Arty A7 via the xc7
+# flow. Runs the xc7 dev shell for the FPGA leg, so this works from the
+# default (XLS) shell. Someday: a `bx` sibling for the TinyFPGA-BX once
+# the ice40 leg can emit bitstreams.
+arty: all
+	nix develop .#xc7 --command $(MAKE) -C fpga/xc7
+
+arty-upload: arty
+	nix develop .#xc7 --command $(MAKE) -C fpga/xc7 upload
+
 clean:
 	rm -rf *.ir src
 
-.PHONY: all test clean
+.PHONY: all test arty arty-upload clean
