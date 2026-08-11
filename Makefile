@@ -39,7 +39,7 @@ test: main.test
 arty: all
 	nix develop .#xc7 --command $(MAKE) -C fpga/xc7
 
-arty-upload: arty
+arty-upload: all
 	nix develop .#xc7 --command $(MAKE) -C fpga/xc7 upload
 
 clean:

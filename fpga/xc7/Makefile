@@ -94,11 +94,10 @@ build/$(TOP).ioplace: build/$(TOP).net
 	  --net $(TOP).net \
 	  --output $(TOP).ioplace
 
-build/$(TOP).place: build/$(TOP).ioplace
-	cd build && $(VPR) --place --fix_clusters $(TOP).ioplace
-
-build/$(TOP).route: build/$(TOP).place
-	cd build && $(VPR) --route
+# Place and route in a single VPR invocation: loading the rr graph
+# dominates runtime, so one load instead of two.
+build/$(TOP).route: build/$(TOP).ioplace
+	cd build && $(VPR) --place --route --fix_clusters $(TOP).ioplace
 
 build/$(TOP).fasm: build/$(TOP).route
 	cd build && genfasm $(ARCH_XML) $(TOP).eblif --device $(DEVICE_NAME) $(VPR_OPTIONS) --read_rr_graph $(RR_GRAPH)
