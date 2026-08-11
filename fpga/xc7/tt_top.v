@@ -8,7 +8,7 @@
 //   uio_out     -> jb[7:0]       (Pmod JB)
 //   uio_oe      -> jd[7:0]       (Pmod JD, shows the direction the core set)
 //   rst_n       <- ck_rst        (red RESET button, active low)
-//   clk         <- 100 MHz oscillator via BUFG
+//   clk         <- 100 MHz oscillator (BUFG auto-inserted by synth)
 module top (
     input        clk,
     input        ck_rst,
@@ -20,18 +20,12 @@ module top (
     input  [7:0] jc,
     output [7:0] jd
 );
-  wire bufg_clk;
-  BUFG bufgctrl (
-      .I(clk),
-      .O(bufg_clk)
-  );
-
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
 
   tt_um_lromor_xls tt (
-      .clk    (bufg_clk),
+      .clk    (clk),
       .rst_n  (ck_rst),
       .ena    (1'b1),
       .ui_in  ({btn, sw}),
