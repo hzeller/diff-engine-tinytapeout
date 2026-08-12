@@ -7,8 +7,16 @@ PIPELINE_STAGES=1
 # config.json.
 all: src/main.sv src/project.sv src/config.json
 
-%.ir: %.x
-	xls-ir-converter --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $^
+# Rebuild generated files when the XLS toolchain itself changes: the stamp
+# holds the toolchain's store path and only gets rewritten when it differs
+# (nix store mtimes are all epoch, so the path can't be a prerequisite).
+XLS_STAMP=.xls-toolchain
+$(XLS_STAMP): FORCE
+	@echo "$(DSLX_STDLIB_PATH)" | cmp -s - $@ || echo "$(DSLX_STDLIB_PATH)" > $@
+FORCE:
+
+%.ir: %.x $(XLS_STAMP)
+	xls-ir-converter --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $<
 
 %.opt.ir: %.ir
 	xls-opt --output_path=$@ $^
