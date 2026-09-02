@@ -19,7 +19,15 @@ module tt_um_lromor_xls (
   // XLS-generated core (src/main.sv, produced from main.x by `make`).
   wire [23:0] core_out;
 
-  xls_main core (
+  xls_spi spi (
+      .clk   (clk),
+      .rst_n (rst_n),
+      .ui_in (ui_in),
+      .uio_in(uio_in),
+      .out   (core_out)
+  );
+
+  xls_diff_engine diff_engine (
       .clk   (clk),
       .rst_n (rst_n),
       .ui_in (ui_in),

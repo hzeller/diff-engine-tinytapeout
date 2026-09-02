@@ -5,7 +5,7 @@ PIPELINE_STAGES=1
 # Tiny Tapeout reads Verilog sources from src/ (see info.yaml). The whole
 # directory is a build product: git only tracks main.x, wrapper.sv and
 # config.json.
-all: src/main.sv src/project.sv src/config.json
+all: src/diff_engine.sv src/spi.sv src/project.sv src/config.json
 
 # Rebuild generated files when the XLS toolchain itself changes: the stamp
 # holds the toolchain's store path and only gets rewritten when it differs
@@ -21,10 +21,10 @@ FORCE:
 %.opt.ir: %.ir
 	xls-opt --output_path=$@ $^
 
-src/main.sv: main.opt.ir
+src/%.sv: %.opt.ir
 	mkdir -p src
 	xls-codegen --delay_model=$(DELAY_MODEL) --pipeline_stages=$(PIPELINE_STAGES) \
-	  --module_name=xls_main --reset=rst_n --reset_active_low \
+	  --module_name=xls_$* --reset=rst_n --reset_active_low \
 	  --output_verilog_path=$@ --use_system_verilog $^
 
 src/project.sv: wrapper.sv
