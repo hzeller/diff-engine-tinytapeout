@@ -2,6 +2,12 @@ TOP=main
 DELAY_MODEL=sky130
 PIPELINE_STAGES=1
 
+# Could be overriden by environment variable, e.g. to point to local bazel build
+XLS_IR_CONVERTER ?= xls-ir-converter
+XLS_INTERPRETER  ?= xls-interpreter
+XLS_OPT          ?= xls-opt
+XLS_CODEGEN      ?= xls-codegen
+
 # Tiny Tapeout reads Verilog sources from src/ (see info.yaml). The whole
 # directory is a build product: git only tracks main.x, wrapper.sv and
 # config.json.
@@ -16,14 +22,14 @@ $(XLS_STAMP): FORCE
 FORCE:
 
 %.ir: %.x $(XLS_STAMP)
-	xls-ir-converter --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $<
+	$(XLS_IR_CONVERTER) --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $<
 
 %.opt.ir: %.ir
-	xls-opt --output_path=$@ $^
+	$(XLS_OPT) --output_path=$@ $^
 
 src/%.sv: %.opt.ir
 	mkdir -p src
-	xls-codegen --delay_model=$(DELAY_MODEL) --pipeline_stages=$(PIPELINE_STAGES) \
+	$(XLS_CODEGEN) --delay_model=$(DELAY_MODEL) --pipeline_stages=$(PIPELINE_STAGES) \
 	  --module_name=xls_$* --reset=rst_n --reset_active_low \
 	  --output_verilog_path=$@ --use_system_verilog $^
 
@@ -36,7 +42,7 @@ src/config.json: config.json
 	cp $< $@
 
 %.test: %.x
-	xls-interpreter --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --alsologtostderr $^
+	$(XLS_INTERPRETER) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --alsologtostderr $^
 
 test: main.test
 
