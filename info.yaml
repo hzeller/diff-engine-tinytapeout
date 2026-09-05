@@ -1,7 +1,7 @@
 # Tiny Tapeout project information
 project:
-  title: "DSLX adder" # Project title
-  author: "Leonardo Romor" # Your name
+  title: "DSLX finite_difference" # Project title
+  author: "Leonardo Romor, Henner Zeller" # Your name
   discord: "" # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description: "Placeholder 4-bit adder written in DSLX and compiled to SystemVerilog with google/xls" # One line description of what your project does
   language: "DSLX" # other examples include SystemVerilog, Amaranth, VHDL, etc
@@ -18,30 +18,30 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - "project.sv"
-    - "main.sv"
+    - "diff_engine.sv"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: "A0"
-  ui[1]: "A1"
-  ui[2]: "A2"
-  ui[3]: "A3"
-  ui[4]: "B0"
-  ui[5]: "B1"
-  ui[6]: "B2"
-  ui[7]: "B3"
+  ui[0]: "in0"
+  ui[1]: "in1"
+  ui[2]: "in2"
+  ui[3]: "in3"
+  ui[4]: "in4"
+  ui[5]: "in5"
+  ui[6]: "in6"
+  ui[7]: "in7"
 
   # Outputs
-  uo[0]: "SUM0"
-  uo[1]: "SUM1"
-  uo[2]: "SUM2"
-  uo[3]: "SUM3"
-  uo[4]: "SUM4"
-  uo[5]: "SUM5"
-  uo[6]: "SUM6"
-  uo[7]: "SUM7"
+  uo[0]: "out0"
+  uo[1]: "out1"
+  uo[2]: "out2"
+  uo[3]: "out3"
+  uo[4]: "out4"
+  uo[5]: "out5"
+  uo[6]: "out6"
+  uo[7]: "out7"
 
   # Bidirectional pins
   uio[0]: ""
