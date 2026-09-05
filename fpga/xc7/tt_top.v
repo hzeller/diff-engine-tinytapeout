@@ -9,12 +9,21 @@
 //   uio_in      <- 0             (bidirectionals unused)
 //   rst_n       <- ck_rst        (red RESET button, active low)
 //   clk         <- 100 MHz oscillator (BUFG auto-inserted by synth)
+//
+// FPGA-only detail: the XDC constrains clk with create_clock, but synthesis
+// sweeps an unused clock net and the SDC then refers to a net that no longer
+// exists. clk_alive keeps the net alive so the harness builds whether or not
+// the core happens to use its clock; (* keep *) is needed because a flop with
+// a constant D is otherwise constant-folded away. Costs one FF.
 module top (
     input        clk,
     input        ck_rst,
     input  [1:0] btn,
     output [1:0] led
 );
+  (* keep *) reg clk_alive = 1'b0;
+  always @(posedge clk) clk_alive <= ~clk_alive;
+
   wire [7:0] uo_out;
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
