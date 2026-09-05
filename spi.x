@@ -15,7 +15,7 @@ impl FifoBuffer<WORD_BITS> {
 }
 
 // Model a simple shift register.
-proc SerialInParallelOut<WORD_BITS: u32> {
+pub proc SerialInParallelOut<WORD_BITS: u32> {
     // Pace at which we receive the serial data.
     clk: chan<()> in,
 
@@ -35,7 +35,7 @@ proc SerialInParallelOut<WORD_BITS: u32> {
 impl SerialInParallelOut<WORD_BITS> {
     const WORD_BITS_SIZE = std::clog2(WORD_BITS);
 
-    fn new(clk: chan<()> in , source: chan<u1> in, rst: chan<()> in, sink: chan<u1[WORD_BITS]> out) -> Self {
+    pub fn new(clk: chan<()> in , source: chan<u1> in, rst: chan<()> in, sink: chan<u1[WORD_BITS]> out) -> Self {
         SerialInParallelOut {
             clk: clk,
             source: source,

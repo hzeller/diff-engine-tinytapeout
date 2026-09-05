@@ -1,4 +1,4 @@
-TOP=main
+TOP=Top
 DELAY_MODEL=sky130
 PIPELINE_STAGES=1
 
@@ -11,7 +11,7 @@ XLS_CODEGEN      ?= xls-codegen
 # Tiny Tapeout reads Verilog sources from src/ (see info.yaml). The whole
 # directory is a build product: git only tracks main.x, wrapper.sv and
 # config.json.
-all: src/diff_engine.sv src/spi.sv src/project.sv src/config.json
+all: src/diff_engine.sv src/project.sv src/config.json
 
 # Rebuild generated files when the XLS toolchain itself changes: the stamp
 # holds the toolchain's store path and only gets rewritten when it differs
@@ -44,7 +44,7 @@ src/config.json: config.json
 %.test: %.x
 	$(XLS_INTERPRETER) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --alsologtostderr $^
 
-test: main.test
+test: diff_engine.test spi.test
 
 # Build (and flash) the current DSLX design for the Arty A7 via the xc7
 # flow. Runs the xc7 dev shell for the FPGA leg, so this works from the
@@ -58,5 +58,8 @@ arty-upload: all
 
 clean:
 	rm -rf *.ir src
+
+# Keep intermediate results for inspection.
+.PRECIOUS: %.ir %.opt.ir
 
 .PHONY: all test arty arty-upload clean

@@ -5,7 +5,9 @@
 CHIPDB?=$(ICESTORM)/share/icebox/chipdb-8k.txt
 TIMINGS?=$(ICESTORM)/share/icebox/timings_lp8k.txt
 
+# Guard here rather than at parse time so `clean` still works outside the shell.
 arch.xml: template.xml scripts/chipdb_layout.py scripts/chipdb_timing.py
+	@test -n "$(ICESTORM)" || { echo "ICESTORM is not set -- enter the dev shell first: nix develop .#ice40" >&2; exit 1; }
 	python3 scripts/chipdb_layout.py --chipdb $(CHIPDB) --template template.xml --output arch.tmp.xml
 	python3 scripts/chipdb_timing.py --timings $(TIMINGS) --input arch.tmp.xml --output $@ --report timing-report.txt
 	rm -f arch.tmp.xml
@@ -22,8 +24,6 @@ check: arch.xml
 
 clean:
 	rm -f arch.xml arch.tmp.xml timing-report.txt counter.blif
-	rm -f *.net *.place *.route vpr_stdout.log *.rpt packing_pin_util.rpt pre_pack.report_timing.setup.rpt
+	rm -f *.net *.net.post_routing *.place *.route vpr_stdout.log *.rpt packing_pin_util.rpt pre_pack.report_timing.setup.rpt
 
-.PHONY: run
-
-.PHONY: check clean
+.PHONY: run check clean
