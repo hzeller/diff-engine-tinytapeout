@@ -2,6 +2,7 @@
 
 import spi;
 import iterative_polynomial_sampler as ps;
+import std;
 
 #![feature(generics)]
 #![feature(explicit_state_access)]
@@ -29,6 +30,8 @@ const I_POLY_CLK_BIT = u32:3;
 
 // Outputs bit map.
 const O_SPI_DO_BIT = u32:0;
+const O_POLY_DO_VALUE_BIT = u32:1;
+const O_POLY_DO_SIGN_BIT = u32:2;
 
 const SPI_WORD_BITS = bit_count<PolyRequest>();
 
@@ -48,7 +51,7 @@ pub proc Top {
     last_sample:         PolynomialNumber,
 
     last_input: Inputs,
-    spi_word_sink: chan<u1[SPI_WORD_BITS]> in,
+    spi_word_sink: chan<uN[SPI_WORD_BITS]> in,
 }
 
 impl Top {
@@ -64,10 +67,11 @@ impl Top {
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
 
         // Instantiate the spi proc. (assuming it accepts a PolyRequest type)
-        let (spi_word_sink_s, spi_word_sink_r) = chan<u1[SPI_WORD_BITS], u32:1>("spi-word-sink");
+        let (spi_word_sink_s, spi_word_sink_r) = chan<uN[SPI_WORD_BITS], u32:1>("spi-word-sink");
 
         // Instantiate the spi proc.
-        let sipo = spi::SerialInParallelOut<SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
+        const_assert!(SPI_WORD_BITS == u32:288);
+        let sipo = spi::SerialInParallelOut<uN[288], SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
         sipo.spawn();
 
         // Wire up polynomial sampler
@@ -102,7 +106,7 @@ impl Top {
         let (tok, input) = recv(join(), self.inputs);
         let last_input = read(self.last_input);
 
-        // --- handling diff engine.
+        // --- Handling diff engine.
         // Check if we want a new sample, and tell
         let poly_clk_bit = input.ui_in[I_POLY_CLK_BIT +: u1];
         let tok = if (poly_clk_bit && poly_clk_bit != last_input.ui_in[I_POLY_CLK_BIT +: u1]) {
@@ -116,30 +120,7 @@ impl Top {
         let (tok, new_sample, _) = recv_non_blocking(tok, self.sample_value_result, last_sample);
         write(self.last_sample, new_sample);
 
-        send(tok, self.outputs, Outputs {
-            // TODO: fish out the right bits from new_sample and set here
-            uo_out: input.ui_in + input.uio_in,
-            uio_out: u8:0,
-            uio_oe: u8:0,          // all bidirectionals are inputs
-        });
-        write(self.last_input, input);
-
-        // Deal with spi.
-        let spi_out = self.next_spi(tok, last_input, input);
-
-        let uo_out = u8:0 | (O_SPI_DO_BIT as u8 & spi_out as u8);
-        send(tok, self.outputs, Outputs{
-            uo_out: uo_out,
-            uio_out: u8:0,
-            uio_oe: u8:0,
-        });
-    }
-
-
-    // Spi logic. Generate events from spi ports.
-    // We keep track of the spi clk state and cs.
-    // When cs is down, emit clk events.
-    fn next_spi(self, tok: token, last_input: Inputs, input: Inputs) -> u1 {
+        // --- Handling off SPI.
         // Get previous clk state recorded.
         let spi_clk = input.ui_in[I_SPI_CLK_BIT +: u1];
         let spi_cs = input.ui_in[I_SPI_CS_BIT +: u1];
@@ -162,8 +143,22 @@ impl Top {
                 send(tok, self.spi_di, spi_di);
             };
         };
+        // For now we ignore the spi output.
+        let spi_do = u1:0b0;
 
-        // Output always 0 for now.
-        u1:0b0
+        // --- Output always 0 for now.
+        let uo_out = u8:0;
+        let uo_out = bit_slice_update(uo_out, O_SPI_DO_BIT, spi_do);
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, std::lsb(last_sample));
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_SIGN_BIT, std::msb(last_sample));
+
+        send(tok, self.outputs, Outputs {
+            uo_out: uo_out,
+            uio_out: u8:0,
+            uio_oe: u8:0,          // all bidirectionals are inputs
+        });
+        write(self.last_input, input);
+
     }
+
 }
