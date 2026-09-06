@@ -54,7 +54,7 @@ impl SerialInParallelOut<WORD_BITS> {
         let new_count = ((state.count as uN[WORD_BITS_SIZE + 1]) + 1) as u1[WORD_BITS_SIZE + 1];
         if new_count[0] == 1 {
             send(join(), self.sink, new_buffer);
-            write(self.state, FifoBuffer<WORD_BITS>::default());
+            write(self.state, zero!<FifoBuffer<WORD_BITS>>());
         } else {
             write(self.state, FifoBuffer{
                 buffer: new_buffer,
