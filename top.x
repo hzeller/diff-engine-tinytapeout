@@ -18,7 +18,7 @@ struct Outputs {
     uio_oe: u8,
 }
 
-type PolynomialNumber = s64;
+type PolynomialNumber = s16;
 const POLY_DEGREE = u32:3;
 type PolyRequest = ps::IterationRequest<PolynomialNumber, POLY_DEGREE>;
 
@@ -58,20 +58,21 @@ impl Top {
     fn new(ui_in: chan<Inputs> in, uo_out: chan<Outputs> out) -> Self {
         // Spi ports and internal channels coupling.
         // We drive these channels through the top proc.
-        let (spi_clk_s, spi_clk_r) = chan<(), u32:1>("spi-clk");
-        let (spi_cs_s, spi_cs_r) = chan<u1, u32:1>("spi-cs");
-        let (spi_di_s, spi_di_r) = chan<u1, u32:1>("spi-di");
-        let (spi_do_s, spi_do_r) = chan<u1, u32:1>("spi-do");
+        let (spi_clk_s, spi_clk_r) = chan<(), 0>("spi-clk");
+        let (spi_cs_s, spi_cs_r) = chan<u1, 0>("spi-cs");
+        let (spi_di_s, spi_di_r) = chan<u1, 0>("spi-di");
+        let (spi_do_s, spi_do_r) = chan<u1, 0>("spi-do");
 
         // Spi consumer is the polynomial sampler
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
 
         // Instantiate the spi proc. (assuming it accepts a PolyRequest type)
-        let (spi_word_sink_s, spi_word_sink_r) = chan<uN[SPI_WORD_BITS], u32:1>("spi-word-sink");
+        let (spi_word_sink_s, spi_word_sink_r) = chan<uN[SPI_WORD_BITS], 0>("spi-word-sink");
 
         // Instantiate the spi proc.
-        const_assert!(SPI_WORD_BITS == u32:288);
-        let sipo = spi::SerialInParallelOut<uN[288], SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
+        // If this assert failes, ensure you udpate the type below. Quirk of xls.
+        const_assert!(SPI_WORD_BITS == u32:96);
+        let sipo = spi::SerialInParallelOut<uN[96], SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
         sipo.spawn();
 
         // Wire up polynomial sampler
@@ -146,7 +147,7 @@ impl Top {
         // For now we ignore the spi output.
         let spi_do = u1:0b0;
 
-        // --- Output always 0 for now.
+        // --- Output.
         let uo_out = u8:0;
         let uo_out = bit_slice_update(uo_out, O_SPI_DO_BIT, spi_do);
         let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, std::lsb(last_sample));
@@ -157,6 +158,8 @@ impl Top {
             uio_out: u8:0,
             uio_oe: u8:0,          // all bidirectionals are inputs
         });
+
+        // Update new state.
         write(self.last_input, input);
 
     }
