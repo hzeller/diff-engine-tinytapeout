@@ -28,12 +28,15 @@
       perSystem =
         { pkgs, ... }:
         let
+          # Prebuilt XLS from our fork (google/xls main + pending DSLX IR
+          # conversion fixes), published as a GitHub release on the nix branch;
+          # same tarball layout as the official releases.
           xls = pkgs.stdenv.mkDerivation rec {
             pname = "xls";
-            version = "v0.0.0-10625-gea192133f";
+            version = "v0.0.0-10631-g18a426591";
             src = pkgs.fetchurl {
-              url = "https://github.com/google/xls/releases/download/${version}/xls-${version}-linux-x64.tar.gz";
-              hash = "sha256-8t21UCH/hEDEC8hy9IYrUrIcLpaW2ennBh1T+oI7pP8=";
+              url = "https://github.com/lromor/xls/releases/download/nix-${version}/xls-${version}-linux-x64.tar.gz";
+              hash = "sha256-r2fow+mMhdmJsFjRMPu0NcwtjZ6UVrMo8nOkUIDHfhk=";
             };
             nativeBuildInputs = [ pkgs.makeWrapper ];
             installPhase = ''

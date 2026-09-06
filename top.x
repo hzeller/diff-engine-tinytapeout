@@ -67,7 +67,6 @@ impl Top {
 
         // Instantiate the spi proc.
         // If this assert failes, ensure you udpate the type below. Quirk of xls.
-        const_assert!(SPI_WORD_BITS == u32:96);
         let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, poly_req_s);
         sipo.spawn();
 

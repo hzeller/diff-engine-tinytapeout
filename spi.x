@@ -57,7 +57,7 @@ impl SerialInParallelOut<T, WORD_BITS> {
         let new_buffer = (state.buffer << uN[WORD_BITS]:1) | (v as uN[WORD_BITS]);
         let new_count = state.count + uN[WORD_BITS_SIZE + 1]:1;
         if new_count == WORD_BITS as uN[WORD_BITS_SIZE + 1] {
-            send(join(), self.sink, new_buffer as T);
+            send(join(), self.sink, T::from_bits(new_buffer));
             write(self.state, FifoBuffer<WORD_BITS>::default());
         } else {
             write(self.state, FifoBuffer{
@@ -66,6 +66,12 @@ impl SerialInParallelOut<T, WORD_BITS> {
             });
         }
     }
+}
+
+struct Word8 { v: u8 }
+
+impl Word8 {
+    pub fn from_bits(x: u8) -> Self { Word8 { v: x } }
 }
 
 #[test]
@@ -77,7 +83,7 @@ proc SerialInParallelOutTest {
     serial_in: chan<u1> out,
 
     // Parallel data received from the test proc perspective.
-    parallel_out: chan<u8> in,
+    parallel_out: chan<Word8> in,
 
     sent_bits_count: u32,
     received_words_count: u32,
@@ -86,8 +92,9 @@ proc SerialInParallelOutTest {
     done: chan<bool> out,  // tell test harness that we're done.
 }
 
+
 impl SerialInParallelOutTest {
-    type T = u8;
+    type T = Word8;
     const WORD_BITS = u32:8;
     const SAMPLE_DATA: u1[32] = u32:0xdeadbeef as u1[32];
     const SAMPLE_BITS_COUNT = u32:32;
@@ -95,8 +102,8 @@ impl SerialInParallelOutTest {
     fn new(done: chan<bool> out) -> Self {
         let (clk_s, clk_r) = chan<()>("sample-clk");
         let (serial_in_s, serial_in_r) = chan<u1>("serial-in");
-        let (parallel_out_s, parallel_out_r) = chan<u8>("parallel-out");
-        let sipo = SerialInParallelOut<u8, WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
+        let (parallel_out_s, parallel_out_r) = chan<Word8>("parallel-out");
+        let sipo = SerialInParallelOut<Word8, WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
         sipo.spawn();
 
         SerialInParallelOutTest {
@@ -128,10 +135,10 @@ impl SerialInParallelOutTest {
         ];
 
         // Receive data.
-        let (_, v, got_word) = recv_non_blocking(join(), self.parallel_out, u8:0);
+        let (_, v, got_word) = recv_non_blocking(join(), self.parallel_out, Word8 { v: u8:0 });
         if got_word {
-            trace_fmt!("received word: 0x{:x}", v as u8);
-            assert_eq(v, EXPECTED_WORDS[received_words_count]);
+            trace_fmt!("received word: 0x{:x}", v.v);
+            assert_eq(v.v, EXPECTED_WORDS[received_words_count]);
             write(self.received_words_count, received_words_count + u32:1);
             if sent_all {
                 assert_eq(received_words_count, 3);
