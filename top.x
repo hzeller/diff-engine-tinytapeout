@@ -51,7 +51,6 @@ pub proc Top {
     last_sample:         PolynomialNumber,
 
     last_input: Inputs,
-    spi_word_sink: chan<uN[SPI_WORD_BITS]> in,
 }
 
 impl Top {
@@ -66,13 +65,10 @@ impl Top {
         // Spi consumer is the polynomial sampler
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
 
-        // Instantiate the spi proc. (assuming it accepts a PolyRequest type)
-        let (spi_word_sink_s, spi_word_sink_r) = chan<uN[SPI_WORD_BITS], 0>("spi-word-sink");
-
         // Instantiate the spi proc.
         // If this assert failes, ensure you udpate the type below. Quirk of xls.
         const_assert!(SPI_WORD_BITS == u32:96);
-        let sipo = spi::SerialInParallelOut<uN[96], SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
+        let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, poly_req_s);
         sipo.spawn();
 
         // Wire up polynomial sampler
@@ -99,7 +95,6 @@ impl Top {
             last_sample: 0,
 
             last_input: Inputs { ..zero!<Inputs>() },
-            spi_word_sink: spi_word_sink_r,
         }
     }
 

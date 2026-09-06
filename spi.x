@@ -6,8 +6,8 @@ import std;
 #![feature(explicit_state_access)]
 
 struct FifoBuffer<WORD_BITS: u32> {
-    buffer: u1[WORD_BITS],
-    count: u1[std::clog2(WORD_BITS) + 1],
+    buffer: uN[WORD_BITS],
+    count: uN[std::clog2(WORD_BITS) + 1],
 }
 
 impl FifoBuffer<WORD_BITS> {
@@ -52,9 +52,11 @@ impl SerialInParallelOut<T, WORD_BITS> {
 
         // Did we just receive a full word?
         let (tok, v) = recv(tok, self.source);
-        let new_buffer = update(state.buffer, state.count as uN[WORD_BITS_SIZE + 1], v as u1);
-        let new_count = ((state.count as uN[WORD_BITS_SIZE + 1]) + 1) as u1[WORD_BITS_SIZE + 1];
-        if new_count[0] == 1 {
+        // Shift in from the LSB end: the first bit received ends up in the MSB,
+        // which is the ordering the array-based version produced.
+        let new_buffer = (state.buffer << uN[WORD_BITS]:1) | (v as uN[WORD_BITS]);
+        let new_count = state.count + uN[WORD_BITS_SIZE + 1]:1;
+        if new_count == WORD_BITS as uN[WORD_BITS_SIZE + 1] {
             send(join(), self.sink, new_buffer as T);
             write(self.state, FifoBuffer<WORD_BITS>::default());
         } else {
