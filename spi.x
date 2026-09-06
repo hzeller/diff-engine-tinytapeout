@@ -18,10 +18,7 @@ impl FifoBuffer<WORD_BITS> {
 
 // Model a simple shift register.
 pub proc SerialInParallelOut<T: type, WORD_BITS: u32> {
-    // Pace at which we receive the serial data.
-    clk: chan<()> in,
-
-    // Pace at which we receive the serial data.
+    // We expect this channel to be filled whenever there is anew bit
     source: chan<u1> in,
 
     // Channel used by the consumer to receive parallel data.
@@ -34,9 +31,8 @@ pub proc SerialInParallelOut<T: type, WORD_BITS: u32> {
 impl SerialInParallelOut<T, WORD_BITS> {
     const WORD_BITS_SIZE = std::clog2(WORD_BITS);
 
-    pub fn new(clk: chan<()> in , source: chan<u1> in, sink: chan<T> out) -> Self {
+    pub fn new(source: chan<u1> in, sink: chan<T> out) -> Self {
         SerialInParallelOut {
-            clk: clk,
             source: source,
             sink: sink,
             state: FifoBuffer<WORD_BITS>::default(),
@@ -46,9 +42,6 @@ impl SerialInParallelOut<T, WORD_BITS> {
     fn next(self) {
         let state = read(self.state);
         let tok = join();
-
-        // Wait for a clock event.
-        recv(tok, self.clk);
 
         // Did we just receive a full word?
         let (tok, v) = recv(tok, self.source);
@@ -76,9 +69,6 @@ impl Word8 {
 
 #[test]
 proc SerialInParallelOutTest {
-    // Sample clock for the SIPO.
-    sample_clk: chan<()> out,
-
     // Mock serial data sent to our SIPO.
     serial_in: chan<u1> out,
 
@@ -100,14 +90,12 @@ impl SerialInParallelOutTest {
     const SAMPLE_BITS_COUNT = u32:32;
 
     fn new(done: chan<bool> out) -> Self {
-        let (clk_s, clk_r) = chan<()>("sample-clk");
         let (serial_in_s, serial_in_r) = chan<u1>("serial-in");
         let (parallel_out_s, parallel_out_r) = chan<Word8>("parallel-out");
-        let sipo = SerialInParallelOut<Word8, WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
+        let sipo = SerialInParallelOut<Word8, WORD_BITS>::new(serial_in_r, parallel_out_s);
         sipo.spawn();
 
         SerialInParallelOutTest {
-            sample_clk: clk_s,
             serial_in: serial_in_s,
             parallel_out: parallel_out_r,
             sent_bits_count: u32:0,
@@ -150,7 +138,6 @@ impl SerialInParallelOutTest {
             // Send data.
             let serial_value = SAMPLE_DATA[sent_bits_count];
             send(tok, self.serial_in, serial_value);
-            send(tok, self.sample_clk, ());
             write(self.sent_bits_count, sent_bits_count + 1);
         };
     }

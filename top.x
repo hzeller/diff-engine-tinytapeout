@@ -41,7 +41,6 @@ pub proc Top {
     outputs: chan<Outputs> out,
 
     // Internal stuff.
-    spi_clk: chan<()> out,
     spi_cs: chan<u1> out,
     spi_di: chan<u1> out,
     spi_do: chan<u1> in,
@@ -57,7 +56,6 @@ impl Top {
     fn new(ui_in: chan<Inputs> in, uo_out: chan<Outputs> out) -> Self {
         // Spi ports and internal channels coupling.
         // We drive these channels through the top proc.
-        let (spi_clk_s, spi_clk_r) = chan<(), 0>("spi-clk");
         let (spi_cs_s, spi_cs_r) = chan<u1, 0>("spi-cs");
         let (spi_di_s, spi_di_r) = chan<u1, 0>("spi-di");
         let (spi_do_s, spi_do_r) = chan<u1, 0>("spi-do");
@@ -67,7 +65,7 @@ impl Top {
 
         // Instantiate the spi proc.
         // If this assert failes, ensure you udpate the type below. Quirk of xls.
-        let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, poly_req_s);
+        let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_di_r, poly_req_s);
         sipo.spawn();
 
         // Wire up polynomial sampler
@@ -83,7 +81,6 @@ impl Top {
             inputs: ui_in, outputs: uo_out,
 
             // Spi.
-            spi_clk: spi_clk_s,
             spi_cs: spi_cs_s,
             spi_di: spi_di_s,
             spi_do: spi_do_r,
@@ -131,13 +128,12 @@ impl Top {
 
         // Chip select high, nothing to do here, keep the clock state high.
         // We follow CPHA 1.
-        if active {
-            if rising {
-                // Submit the SIPO.
-                let tok = send(tok, self.spi_clk, ());
-                send(tok, self.spi_di, spi_di);
-            };
+        let tok = if active && rising {
+            send(tok, self.spi_di, spi_di)
+        } else {
+            tok
         };
+
         // For now we ignore the spi output.
         let spi_do = u1:0b0;
 
