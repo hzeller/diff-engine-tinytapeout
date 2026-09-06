@@ -124,7 +124,7 @@ impl Top {
         let last_spi_clk = last_input.ui_in[I_SPI_CLK_BIT +: u1];
         let last_spi_cs = last_input.ui_in[I_SPI_CS_BIT +: u1];
 
-        let rising = last_spi_clk == 1 && spi_clk == 0;
+        let rising = last_spi_clk == 0 && spi_clk == 1;
 
         // Previous and current tick are all zero. We are in a correct active state.
         let active = spi_cs == 0 && last_spi_cs == 0;
