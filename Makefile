@@ -31,6 +31,7 @@ src/%.sv: %.opt.ir
 	mkdir -p src
 	$(XLS_CODEGEN) --delay_model=$(DELAY_MODEL) --pipeline_stages=$(PIPELINE_STAGES) \
 	  --module_name=xls_$* --reset=rst_n --reset_active_low \
+	  --materialize_internal_fifos \
 	  --output_verilog_path=$@ --use_system_verilog $^
 
 src/project.sv: wrapper.sv
