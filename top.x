@@ -18,7 +18,7 @@ struct Outputs {
     uio_oe: u8,
 }
 
-type PolynomialNumber = s32;
+type PolynomialNumber = s16;
 const POLY_DEGREE = u32:3;
 type PolyRequest = ps::IterationRequest<PolynomialNumber, POLY_DEGREE>;
 
@@ -134,7 +134,7 @@ impl Top {
         if active {
             if rising {
                 // Submit the SIPO.
-                send(tok, self.spi_clk, ());
+                let tok = send(tok, self.spi_clk, ());
                 send(tok, self.spi_di, spi_di);
             };
         };
@@ -144,8 +144,8 @@ impl Top {
         // --- Output.
         let uo_out = u8:0;
         let uo_out = bit_slice_update(uo_out, O_SPI_DO_BIT, spi_do);
-        let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, std::lsb(last_sample));
-        let uo_out = bit_slice_update(uo_out, O_POLY_DO_SIGN_BIT, std::msb(last_sample));
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, std::lsb(new_sample));
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_SIGN_BIT, std::msb(new_sample));
 
         send(tok, self.outputs, Outputs {
             uo_out: uo_out,
