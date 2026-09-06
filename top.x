@@ -17,18 +17,18 @@ struct Outputs {
     uio_oe: u8,
 }
 
-struct SpiSource {
-    spi_clk: chan<()> out,
-    spi_cs: chan<u1> out,
-    spi_di: chan<u1> out,
-    spi_do: chan<u1> in,
-}
-
 type PolynomialNumber = s64;
 const POLY_DEGREE = u32:3;
 type PolyRequest = ps::IterationRequest<PolynomialNumber, POLY_DEGREE>;
 
-const POLY_CLK_BIT = u32:1;    // TBD which bit we want
+// Input bits map.
+const I_SPI_CLK_BIT = u32:0;
+const I_SPI_CS_BIT = u32:1;
+const I_SPI_DI_BIT = u32:2;
+const I_POLY_CLK_BIT = u32:3;
+
+// Outputs bit map.
+const O_SPI_DO_BIT = u32:0;
 
 const SPI_WORD_BITS = bit_count<PolyRequest>();
 
@@ -48,6 +48,7 @@ pub proc Top {
     last_sample:         PolynomialNumber,
 
     last_input: Inputs,
+    spi_word_sink: chan<u1[SPI_WORD_BITS]> in,
 }
 
 impl Top {
@@ -59,21 +60,15 @@ impl Top {
         let (spi_di_s, spi_di_r) = chan<u1, u32:1>("spi-di");
         let (spi_do_s, spi_do_r) = chan<u1, u32:1>("spi-do");
 
-        // Channels driven by the ports.
-        let spi_source = SpiSource {
-            spi_clk: spi_clk_s,
-            spi_cs: spi_cs_s,
-            spi_di: spi_di_s,
-            spi_do: spi_do_r,
-        };
-
         // Spi consumer is the polynomial sampler
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
 
         // Instantiate the spi proc. (assuming it accepts a PolyRequest type)
-        //let sipo = spi::SerialInParallelOut<PolyRequest>::new(spi_clk_r, spi_di_r, poly_req_s)
-        // let sipo = spi.SerialInParallelOut<SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
-        //sipo.spawn();
+        let (spi_word_sink_s, spi_word_sink_r) = chan<u1[SPI_WORD_BITS], u32:1>("spi-word-sink");
+
+        // Instantiate the spi proc.
+        let sipo = spi::SerialInParallelOut<SPI_WORD_BITS>::new(spi_clk_r, spi_di_r, spi_word_sink_s);
+        sipo.spawn();
 
         // Wire up polynomial sampler
         let (poly_want_s, poly_want_r) = chan<(), 0>("poly-want-next-sample");
@@ -82,16 +77,24 @@ impl Top {
             ::new(poly_req_r, poly_want_r, poly_sample_result_s);
         sampler.spawn();
 
-        Top {
-            inputs: ui_in, outputs: uo_out,
-            spi_clk: spi_clk_s, spi_cs: spi_cs_s, spi_di: spi_di_s, spi_do: spi_do_r,
 
-            // polynomial sampling stuff
+        Top {
+            // I/O ports.
+            inputs: ui_in, outputs: uo_out,
+
+            // Spi.
+            spi_clk: spi_clk_s,
+            spi_cs: spi_cs_s,
+            spi_di: spi_di_s,
+            spi_do: spi_do_r,
+
+            // Polynomial sampling stuff.
             want_poly_sample: poly_want_s,
             sample_value_result: poly_sample_result_r,
             last_sample: 0,
 
             last_input: Inputs { ..zero!<Inputs>() },
+            spi_word_sink: spi_word_sink_r,
         }
     }
 
@@ -101,8 +104,8 @@ impl Top {
 
         // --- handling diff engine.
         // Check if we want a new sample, and tell
-        let poly_clk_bit = input.ui_in[POLY_CLK_BIT +: u1];
-        let tok = if (poly_clk_bit && poly_clk_bit != last_input.ui_in[POLY_CLK_BIT +: u1]) {
+        let poly_clk_bit = input.ui_in[I_POLY_CLK_BIT +: u1];
+        let tok = if (poly_clk_bit && poly_clk_bit != last_input.ui_in[I_POLY_CLK_BIT +: u1]) {
             send(tok, self.want_poly_sample, ())
         } else {
             tok
@@ -120,5 +123,47 @@ impl Top {
             uio_oe: u8:0,          // all bidirectionals are inputs
         });
         write(self.last_input, input);
+
+        // Deal with spi.
+        let spi_out = self.next_spi(tok, last_input, input);
+
+        let uo_out = u8:0 | (O_SPI_DO_BIT as u8 & spi_out as u8);
+        send(tok, self.outputs, Outputs{
+            uo_out: uo_out,
+            uio_out: u8:0,
+            uio_oe: u8:0,
+        });
+    }
+
+
+    // Spi logic. Generate events from spi ports.
+    // We keep track of the spi clk state and cs.
+    // When cs is down, emit clk events.
+    fn next_spi(self, tok: token, last_input: Inputs, input: Inputs) -> u1 {
+        // Get previous clk state recorded.
+        let spi_clk = input.ui_in[I_SPI_CLK_BIT +: u1];
+        let spi_cs = input.ui_in[I_SPI_CS_BIT +: u1];
+        let spi_di = input.ui_in[I_SPI_DI_BIT +: u1];
+
+        let last_spi_clk = last_input.ui_in[I_SPI_CLK_BIT +: u1];
+        let last_spi_cs = last_input.ui_in[I_SPI_CS_BIT +: u1];
+
+        let rising = last_spi_clk == 1 && last_spi_clk == 0;
+
+        // Previous and current tick are all zero. We are in a correct active state.
+        let active = spi_cs == 0 && last_spi_cs == 0;
+
+        // Chip select high, nothing to do here, keep the clock state high.
+        // We follow CPHA 1.
+        if active {
+            if rising {
+                // Submit the SIPO.
+                send(tok, self.spi_clk, ());
+                send(tok, self.spi_di, spi_di);
+            };
+        };
+
+        // Output always 0 for now.
+        u1:0b0
     }
 }
