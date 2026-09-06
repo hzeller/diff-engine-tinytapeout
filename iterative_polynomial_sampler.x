@@ -55,7 +55,6 @@ impl IterativePolynomialSampler<T, DEGREE> {
             request,
             sample_clock,
             sample_out,
-
             state: IterationRequest<T, DEGREE>::default(),
         }
     }

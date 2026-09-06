@@ -1,3 +1,5 @@
+// -*- mode: rust; indent-tabs-mode: nil; -*-
+
 import std;
 
 #![feature(generics)]
@@ -15,7 +17,7 @@ impl FifoBuffer<WORD_BITS> {
 }
 
 // Model a simple shift register.
-pub proc SerialInParallelOut<WORD_BITS: u32> {
+pub proc SerialInParallelOut<T: type, WORD_BITS: u32> {
     // Pace at which we receive the serial data.
     clk: chan<()> in,
 
@@ -23,16 +25,16 @@ pub proc SerialInParallelOut<WORD_BITS: u32> {
     source: chan<u1> in,
 
     // Channel used by the consumer to receive parallel data.
-    sink: chan<u1[WORD_BITS]> out,
+    sink: chan<T> out,
 
     // Internal state.
     state: FifoBuffer<WORD_BITS>,
 }
 
-impl SerialInParallelOut<WORD_BITS> {
+impl SerialInParallelOut<T, WORD_BITS> {
     const WORD_BITS_SIZE = std::clog2(WORD_BITS);
 
-    pub fn new(clk: chan<()> in , source: chan<u1> in, sink: chan<u1[WORD_BITS]> out) -> Self {
+    pub fn new(clk: chan<()> in , source: chan<u1> in, sink: chan<T> out) -> Self {
         SerialInParallelOut {
             clk: clk,
             source: source,
@@ -53,8 +55,8 @@ impl SerialInParallelOut<WORD_BITS> {
         let new_buffer = update(state.buffer, state.count as uN[WORD_BITS_SIZE + 1], v as u1);
         let new_count = ((state.count as uN[WORD_BITS_SIZE + 1]) + 1) as u1[WORD_BITS_SIZE + 1];
         if new_count[0] == 1 {
-            send(join(), self.sink, new_buffer);
-            write(self.state, zero!<FifoBuffer<WORD_BITS>>());
+            send(join(), self.sink, new_buffer as T);
+            write(self.state, FifoBuffer<WORD_BITS>::default());
         } else {
             write(self.state, FifoBuffer{
                 buffer: new_buffer,
@@ -73,7 +75,7 @@ proc SerialInParallelOutTest {
     serial_in: chan<u1> out,
 
     // Parallel data received from the test proc perspective.
-    parallel_out: chan<u1[8]> in,
+    parallel_out: chan<u8> in,
 
     sent_bits_count: u32,
     received_words_count: u32,
@@ -83,6 +85,7 @@ proc SerialInParallelOutTest {
 }
 
 impl SerialInParallelOutTest {
+    type T = u8;
     const WORD_BITS = u32:8;
     const SAMPLE_DATA: u1[32] = u32:0xdeadbeef as u1[32];
     const SAMPLE_BITS_COUNT = u32:32;
@@ -90,8 +93,8 @@ impl SerialInParallelOutTest {
     fn new(done: chan<bool> out) -> Self {
         let (clk_s, clk_r) = chan<()>("sample-clk");
         let (serial_in_s, serial_in_r) = chan<u1>("serial-in");
-        let (parallel_out_s, parallel_out_r) = chan<u1[WORD_BITS]>("parallel-out");
-        let sipo = SerialInParallelOut<WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
+        let (parallel_out_s, parallel_out_r) = chan<u8>("parallel-out");
+        let sipo = SerialInParallelOut<u8, WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
         sipo.spawn();
 
         SerialInParallelOutTest {
@@ -123,10 +126,10 @@ impl SerialInParallelOutTest {
         ];
 
         // Receive data.
-        let (_, v, got_word) = recv_non_blocking(join(), self.parallel_out, u8:0 as u1[8]);
+        let (_, v, got_word) = recv_non_blocking(join(), self.parallel_out, u8:0);
         if got_word {
             trace_fmt!("received word: 0x{:x}", v as u8);
-            assert_eq(v, EXPECTED_WORDS[received_words_count] as u1[8]);
+            assert_eq(v, EXPECTED_WORDS[received_words_count]);
             write(self.received_words_count, received_words_count + u32:1);
             if sent_all {
                 assert_eq(received_words_count, 3);
