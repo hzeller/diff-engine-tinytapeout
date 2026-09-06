@@ -18,7 +18,7 @@ struct Outputs {
     uio_oe: u8,
 }
 
-type PolynomialNumber = s16;
+type PolynomialNumber = s32;
 const POLY_DEGREE = u32:3;
 type PolyRequest = ps::IterationRequest<PolynomialNumber, POLY_DEGREE>;
 
