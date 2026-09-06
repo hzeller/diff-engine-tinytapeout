@@ -1,6 +1,6 @@
 TOP=Top
 DELAY_MODEL=sky130
-PIPELINE_STAGES=1
+PIPELINE_STAGES=2
 
 # Could be overriden by environment variable, e.g. to point to local bazel build
 XLS_IR_CONVERTER ?= xls-ir-converter
