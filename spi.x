@@ -22,9 +22,6 @@ pub proc SerialInParallelOut<WORD_BITS: u32> {
     // Pace at which we receive the serial data.
     source: chan<u1> in,
 
-    // Reset the buffer state, discards anything in the buffer.
-    rst: chan<()> in,
-
     // Channel used by the consumer to receive parallel data.
     sink: chan<u1[WORD_BITS]> out,
 
@@ -35,11 +32,10 @@ pub proc SerialInParallelOut<WORD_BITS: u32> {
 impl SerialInParallelOut<WORD_BITS> {
     const WORD_BITS_SIZE = std::clog2(WORD_BITS);
 
-    pub fn new(clk: chan<()> in , source: chan<u1> in, rst: chan<()> in, sink: chan<u1[WORD_BITS]> out) -> Self {
+    pub fn new(clk: chan<()> in , source: chan<u1> in, sink: chan<u1[WORD_BITS]> out) -> Self {
         SerialInParallelOut {
             clk: clk,
             source: source,
-            rst: rst,
             sink: sink,
             state: FifoBuffer<WORD_BITS>::default(),
         }
@@ -94,9 +90,8 @@ impl SerialInParallelOutTest {
     fn new(done: chan<bool> out) -> Self {
         let (clk_s, clk_r) = chan<()>("sample-clk");
         let (serial_in_s, serial_in_r) = chan<u1>("serial-in");
-        let (rst_s, rst_r) = chan<()>("rst");
         let (parallel_out_s, parallel_out_r) = chan<u1[WORD_BITS]>("parallel-out");
-        let sipo = SerialInParallelOut<WORD_BITS>::new(clk_r, serial_in_r, rst_r, parallel_out_s);
+        let sipo = SerialInParallelOut<WORD_BITS>::new(clk_r, serial_in_r, parallel_out_s);
         sipo.spawn();
 
         SerialInParallelOutTest {
