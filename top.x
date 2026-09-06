@@ -2,14 +2,6 @@ import spi;
 
 #![feature(generics)]
 
-// A DSLX port of the Tiny Tapeout Verilog template:
-//     assign uo_out  = ui_in + uio_in;
-//     assign uio_out = 0;
-//     assign uio_oe  = 0;
-//
-// Every pin the design owns is carried on a channel, so nothing is left
-// dangling for the hardening flow.
-
 struct Inputs {
     ui_in: u8,
     uio_in: u8,

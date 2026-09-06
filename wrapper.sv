@@ -10,17 +10,10 @@ module tt_um_lromor_xls (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-
-  // XLS-generated core (src/diff_engine.sv, produced from diff_engine.x by `make`).
-  //
-  // The core's channels carry structs, which XLS flattens with field 0 in the
-  // MSBs:  Inputs{ui_in, uio_in} -> 16 bits,  Outputs{uo_out, uio_out, uio_oe}
-  // -> 24 bits. Tying valid/ready high makes the core advance once per clock and
-  // lets synthesis fold the handshake away.
   wire [23:0] core_out;
   wire in_rdy_unused, out_vld_unused;
 
-  xls_diff_engine diff_engine (
+  xls_top top (
       .clk         (clk),
       .rst_n       (rst_n),
       ._ui_in      ({ui_in, uio_in}),
