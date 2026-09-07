@@ -159,7 +159,7 @@ proc SamplerTest {
 
 impl SamplerTest {
     type T = s64;
-    const SAMPLE_COUNT = u32:30;
+    const SAMPLE_COUNT = u32:8;
 
     // To compare with our other examples in difference-engine repo,
     // we use pre-calculated parameters from these * 1000000
@@ -228,13 +228,14 @@ impl SamplerTest {
             // Print that back as decimal point value. We're 1M decimal mult.
             // unfortunately, dslx does not have formatting with leading
             // zeroes yet, so manually do the post decimal point manually.
-            trace_fmt!("{} {}.{}{}{}{}{}", index,
+            trace_fmt!("{} {}.{}{}{}{}{} (↓: {})", index,
                        sample_result / 1000000,
                        std::abs((sample_result % 1000000) / 100000),
                        std::abs((sample_result %  100000) / 10000),
                        std::abs((sample_result %   10000) / 1000),
                        std::abs((sample_result %    1000) / 100),
                        std::abs((sample_result %     100) / 10),
+                       dir
             );
 
             // We only check a handful of the first samples
