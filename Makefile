@@ -8,6 +8,8 @@ XLS_INTERPRETER  ?= xls-interpreter
 XLS_OPT          ?= xls-opt
 XLS_CODEGEN      ?= xls-codegen
 
+YOSYS_OUT_DIR ?= yosys-out
+
 # Tiny Tapeout reads Verilog sources from src/ (see info.yaml). The whole
 # directory is a build product: git only tracks main.x, wrapper.sv and
 # config.json.
@@ -62,9 +64,30 @@ arty-upload: all
 	nix develop .#xc7 --command $(MAKE) -C fpga/xc7 upload
 
 clean:
-	rm -rf *.ir src
+	rm -rf *.ir src $(YOSYS_OUT_DIR)
+
+
+yosys: $(YOSYS_OUT_DIR)/synth.log
+
+$(YOSYS_OUT_DIR):
+	mkdir -p $@
+
+$(YOSYS_OUT_DIR)/synth.log: src/project.sv src/top.sv | $(YOSYS_OUT_DIR)
+	@if [ -z "$(SKY130_LIB)" ]; then echo "Error: SKY130_LIB environment variable is not set." >&2; exit 1; fi
+	yosys -q -l $(YOSYS_OUT_DIR)/synth.log -p "\
+	  read_liberty -lib $(SKY130_LIB); \
+	  read_verilog -sv src/project.sv src/top.sv; \
+	  hierarchy -top tt_um_diff_engine; \
+	  proc; flatten; synth -top tt_um_diff_engine; \
+	  dfflibmap -liberty $(SKY130_LIB); \
+	  abc -liberty $(SKY130_LIB); \
+	  clean; \
+	  stat -liberty $(SKY130_LIB); \
+	  write_verilog -noattr $(YOSYS_OUT_DIR)/synth.v"
+
+synth: yosys
 
 # Keep intermediate results for inspection.
 .PRECIOUS: %.ir %.opt.ir
 
-.PHONY: all test arty arty-upload clean
+.PHONY: all test yosys synth arty arty-upload clean
