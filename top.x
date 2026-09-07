@@ -53,7 +53,9 @@ pub proc Top {
     want_poly_sample:    chan<()> out,
     sample_value_result: chan<(PolynomialNumber, u1)> in,
     last_stepdir:         StepDir,
-    step_out: u1,
+
+    // Implement a 64 cycles delay for step.
+    rising_delay_counter: u6,
 
     last_input: Inputs,
 }
@@ -97,7 +99,7 @@ impl Top {
             want_poly_sample: poly_want_s,
             sample_value_result: poly_sample_result_r,
             last_stepdir: StepDir{  ..zero!<StepDir>() },
-            step_out: u1:0,
+            rising_delay_counter: u7:0,
 
             last_input: Inputs { ..zero!<Inputs>() },
         }
@@ -118,30 +120,30 @@ impl Top {
 
         // Maybe we got a result, so attempt to receive one.
         let last_stepdir = read(self.last_stepdir);
-        let (tok, (new_sample, new_dir), _) = recv_non_blocking(tok, self.sample_value_result, (0, u1:0));
+        let (tok, (new_sample, new_dir), got) = recv_non_blocking(tok, self.sample_value_result, (0, u1:0));
 
-        let new_step = (new_sample as uN[W])[W - 2+: u1];
+        let new_step = if got { (new_sample as uN[W])[W - 2 +: u1] } else { last_stepdir.step };
 
         // We only change the direction when steps does.
         let rising = new_step == u1:1 && last_stepdir.step == u1:0;
-        let falling = new_step == u1:0 && last_stepdir.step == u1:1;
-
         let new_dir = if rising { new_dir } else { last_stepdir.dir };
+        let dir_change = new_dir != last_stepdir.dir;
 
         write(self.last_stepdir, StepDir{
             step: new_step,
             dir: new_dir,
         });
 
-        if falling {
-            write(self.step_out, u1:1);
-        };
-        if rising {
-            write(self.step_out, u1:0);
-        };
-
-        let dir_out = if rising { new_dir } else { last_stepdir.dir };
-        let step_out = read(self.step_out);
+        // What to output now?
+        // If it's rising we are not expecting the bit to rise more frequently than counter cycles.
+        // Hence, rising and counter != 0 must never be true at the same time.
+        let rising_delay_counter = read(self.rising_delay_counter);
+        let step_out = if (rising && dir_change) || (rising_delay_counter != 0) {
+            // Increment until we overflow and go back to 0.
+            write(self.rising_delay_counter, rising_delay_counter + 1);
+            u1:0
+        } else { last_stepdir.step };
+        let dir_out = new_dir;
 
         // --- Handling off SPI.
         // Get previous clk state recorded.
@@ -182,7 +184,5 @@ impl Top {
 
         // Update new state.
         write(self.last_input, input);
-
     }
-
 }
