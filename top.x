@@ -93,7 +93,7 @@ impl Top {
             want_poly_sample: poly_want_s,
             sample_value_result: poly_sample_result_r,
             last_stepdir: StepDir{  ..zero!<StepDir>() },
-            rising_delay_counter: u7:0,
+            rising_delay_counter: u6:0,
 
             last_input: Inputs { ..zero!<Inputs>() },
         }
