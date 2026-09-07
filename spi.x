@@ -1,4 +1,4 @@
-// -*- mode: rust; indent-tabs-mode: nil; -*-
+//usr/bin/env -S make spi.test; exit
 
 import std;
 
@@ -142,3 +142,8 @@ impl SerialInParallelOutTest {
         };
     }
 }
+
+// Local Variables:
+// mode: rust
+// indent-tabs-mode: nil
+// End:
