@@ -62,16 +62,27 @@
                 --add-flags "--stdlib_path=$out/lib/xls/dslx/stdlib"
             '';
           };
+          sky130-lib = pkgs.fetchurl {
+            url = "https://raw.githubusercontent.com/efabless/skywater-pdk-libs-sky130_fd_sc_hd/master/timing/sky130_fd_sc_hd__tt_025C_1v80.lib";
+            hash = "sha256-jnjhREIGLbo01BT8pkkLL2uWA41FENFDjKRP7jFIcTU=";
+          };
         in
         {
           packages.xls = xls;
 
           devShells.default = pkgs.mkShell {
-            packages = [ xls ];
+            packages = [
+              xls
+
+              # For local testing
+              pkgs.yosys
+            ];
             DSLX_STDLIB_PATH = "${xls}/lib/xls/dslx/stdlib";
 
             # Possibly ':'-separated more paths to search
             DSLX_PATH = "${xls}/lib";
+
+            SKY130_LIB = "${sky130-lib}";
           };
         };
     };
