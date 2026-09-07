@@ -18,7 +18,7 @@ struct Outputs {
     uio_oe: u8,
 }
 
-type PolynomialNumber = s16;
+type PolynomialNumber = s12;
 const POLY_DEGREE = u32:3;
 type PolyRequest = ps::IterationRequest<PolynomialNumber, POLY_DEGREE>;
 
@@ -35,6 +35,11 @@ const O_POLY_DO_SIGN_BIT = u32:2;
 
 const SPI_WORD_BITS = bit_count<PolyRequest>();
 
+struct StepDir {
+    step: u1,
+    dir: u1,
+}
+
 pub proc Top {
     // Ports to the external world.
     inputs: chan<Inputs> in,
@@ -46,18 +51,21 @@ pub proc Top {
     spi_do: chan<u1> in,
 
     want_poly_sample:    chan<()> out,
-    sample_value_result: chan<PolynomialNumber> in,
-    last_sample:         PolynomialNumber,
+    sample_value_result: chan<(PolynomialNumber, u1)> in,
+    last_stepdir:         StepDir,
+    step_out: u1,
 
     last_input: Inputs,
 }
 
 impl Top {
+    const W = bit_count<PolynomialNumber>();
+
     fn new(ui_in: chan<Inputs> in, uo_out: chan<Outputs> out) -> Self {
         // Spi ports and internal channels coupling.
         // We drive these channels through the top proc.
         let (spi_cs_s, spi_cs_r) = chan<u1, 0>("spi-cs");
-        let (spi_di_s, spi_di_r) = chan<u1, 0>("spi-di");
+        let (spi_di_s, spi_di_r) = chan<u1, 1>("spi-di");
         let (spi_do_s, spi_do_r) = chan<u1, 0>("spi-do");
 
         // Spi consumer is the polynomial sampler
@@ -70,7 +78,7 @@ impl Top {
 
         // Wire up polynomial sampler
         let (poly_want_s, poly_want_r) = chan<(), 0>("poly-want-next-sample");
-        let (poly_sample_result_s, poly_sample_result_r) = chan<PolynomialNumber, 0>("poly-result");
+        let (poly_sample_result_s, poly_sample_result_r) = chan<(PolynomialNumber, u1), 0>("poly-result");
         let sampler = ps::IterativePolynomialSampler<PolynomialNumber, POLY_DEGREE>
             ::new(poly_req_r, poly_want_r, poly_sample_result_s);
         sampler.spawn();
@@ -88,7 +96,8 @@ impl Top {
             // Polynomial sampling stuff.
             want_poly_sample: poly_want_s,
             sample_value_result: poly_sample_result_r,
-            last_sample: 0,
+            last_stepdir: StepDir{  ..zero!<StepDir>() },
+            step_out: u1:0,
 
             last_input: Inputs { ..zero!<Inputs>() },
         }
@@ -108,9 +117,33 @@ impl Top {
         };
 
         // Maybe we got a result, so attempt to receive one.
-        let last_sample = read(self.last_sample);
-        let (tok, new_sample, _) = recv_non_blocking(tok, self.sample_value_result, last_sample);
-        write(self.last_sample, new_sample);
+        let last_stepdir = read(self.last_stepdir);
+        let (tok, (new_sample, new_dir), got) = recv_non_blocking(tok, self.sample_value_result, (0, u1:0));
+
+        let dir_out = if got {
+            let new_step = (new_sample as uN[W])[W - 2+: u1];
+
+            // We only change the direction when steps does.
+            let rising = new_step == u1:1 && last_stepdir.step == u1:0;
+            let falling = new_step == u1:0 && last_stepdir.step == u1:1;
+
+            let new_dir = if rising { new_dir } else { last_stepdir.dir };
+
+            write(self.last_stepdir, StepDir{
+                step: new_step,
+                dir: new_dir,
+            });
+
+            if falling {
+                write(self.step_out, u1:1);
+            };
+            if rising {
+                write(self.step_out, u1:0);
+            };
+            new_dir
+        } else { last_stepdir.dir };
+
+        let step_out = read(self.step_out);
 
         // --- Handling off SPI.
         // Get previous clk state recorded.
@@ -140,8 +173,8 @@ impl Top {
         // --- Output.
         let uo_out = u8:0;
         let uo_out = bit_slice_update(uo_out, O_SPI_DO_BIT, spi_do);
-        let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, std::lsb(new_sample));
-        let uo_out = bit_slice_update(uo_out, O_POLY_DO_SIGN_BIT, std::msb(new_sample));
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_VALUE_BIT, step_out);
+        let uo_out = bit_slice_update(uo_out, O_POLY_DO_SIGN_BIT, dir_out);
 
         send(tok, self.outputs, Outputs {
             uo_out: uo_out,

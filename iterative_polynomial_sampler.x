@@ -60,15 +60,19 @@ pub proc IterativePolynomialSampler<T: type, DEGREE: u32> {
 
     // Pacing the output of the samples as needed.
     sample_clock: chan<()> in,  // Empty 'channel' requesting next sample.
-    sample_out:   chan<T> out,  // After request, receives request.count samples
+    sample_out:   chan<(T, u1)> out,  // After request, receives request.count samples.
+                                      // The second element of the tuple contains if the change
+                                      // was positive [0] or negative [1].
 
     state: IterationRequest<T, DEGREE>
 }
 
 impl IterativePolynomialSampler<T, DEGREE> {
+    const W = bit_count<T>();
+
     fn new(request:      chan<IterationRequest<T, DEGREE>> in,
            sample_clock: chan<()> in,
-           sample_out:   chan<T> out) -> Self {
+           sample_out:   chan<(T, u1)> out) -> Self {
         IterativePolynomialSampler<T, DEGREE> {
             request,
             sample_clock,
@@ -119,8 +123,10 @@ impl IterativePolynomialSampler<T, DEGREE> {
                 update(reg, i + 1, reg[i + 1] + reg[i])
             }(state.registers.reg);
 
+            let dir = std::msb(reg[DEGREE - u32:1] as uN[W]);
+
             // The last register holds the new polynomial value P(x+dx).
-            send(tok, self.sample_out, reg[DEGREE]);
+            send(tok, self.sample_out, (reg[DEGREE], dir));
 
             IterationRequest<T, DEGREE> {  // updated state.
                 registers: PolynomialRegisters<T, DEGREE> {
@@ -142,7 +148,7 @@ proc SamplerTest {
 
     // Get a new sample from our IterativePolynomialSampler
     sample_clock:    chan<()> out,
-    sample_rec:      chan<s64> in,
+    sample_rec:      chan<(s64, u1)> in,
 
     // test book-keeping
     starting:        bool,
@@ -157,7 +163,7 @@ impl SamplerTest {
 
     // To compare with our other examples in difference-engine repo,
     // we use pre-calculated parameters from these * 1000000
-    const INITIAL_REGISTERS = [T:60, -14320, 568370, 15515890];
+    const INITIAL_REGISTERS = [T:6265, -32693, 61843, 15515890];
 
     const PD = array_size(INITIAL_REGISTERS) - 1;  // Polynomial degree
 
@@ -165,7 +171,7 @@ impl SamplerTest {
         // Ceci n'est pas une |
         let (req_s, req_r)       = chan<IterationRequest<T, PD>>("new_it");
         let (clk_s, clk_r)       = chan<()>("sample-clock");
-        let (sample_s, sample_r) = chan<T>("sample");
+        let (sample_s, sample_r) = chan<(T, u1)>("sample");
 
         let dut = IterativePolynomialSampler<T, PD>::new(req_r, clk_r,
                                                          sample_s);
@@ -202,21 +208,21 @@ impl SamplerTest {
 
         // Same values as ./iterative-polynomial-sampler.{cc,rs} * 1000_000
         const EXPECTED_SEQ = [
-            T:16070000,  // dslx does not support underscores in literals yet.
-            T:16609910,
-            T:17135680,
-            T:17647370,
-            T:18145040,
-            T:18628750,
-            T:19098560,
-            T:19554530,
+            (T:15551305, u1:0), // dslx does not support underscores in literals yet.
+            (T:15566557, u1:0),
+            (T:15567911, u1:0),
+            (T:15561632, u1:1),
+            (T:15553985, u1:1),
+            (T:15551235, u1:1),
+            (T:15559647, u1:0),
+            (T:15585486, u1:0),
         ];
 
         let remaining = read(self.receive_samples);
         if remaining != 0 {
             // requesting, and then receiving the sample
             let tok = send(tok, self.sample_clock, ());
-            let (tok, sample_result) = recv(tok, self.sample_rec);
+            let (tok, (sample_result, dir)) = recv(tok, self.sample_rec);
 
             let index = SAMPLE_COUNT - remaining;
             // Print that back as decimal point value. We're 1M decimal mult.
@@ -233,7 +239,9 @@ impl SamplerTest {
 
             // We only check a handful of the first samples
             if index < array_size(EXPECTED_SEQ) {
-                assert_eq(sample_result, EXPECTED_SEQ[index]);
+                let expected = EXPECTED_SEQ[index];
+                assert_eq(sample_result, expected.0);
+                assert_eq(dir, expected.1);
             };
             write(self.receive_samples, remaining - 1);
         } else {
