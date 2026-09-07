@@ -21,6 +21,8 @@ $(XLS_STAMP): FORCE
 	@echo "$(DSLX_STDLIB_PATH)" | cmp -s - $@ || echo "$(DSLX_STDLIB_PATH)" > $@
 FORCE:
 
+top.ir: top.x spi.x iterative_polynomial_sampler.x
+
 %.ir: %.x $(XLS_STAMP)
 	$(XLS_IR_CONVERTER) --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $<
 
