@@ -46,9 +46,7 @@ pub proc Top {
     outputs: chan<Outputs> out,
 
     // Internal stuff.
-    spi_cs: chan<u1> out,
     spi_di: chan<u1> out,
-    spi_do: chan<u1> in,
 
     want_poly_sample:    chan<()> out,
     sample_value_result: chan<(PolynomialNumber, u1)> in,
@@ -64,9 +62,7 @@ impl Top {
     fn new(ui_in: chan<Inputs> in, uo_out: chan<Outputs> out) -> Self {
         // Spi ports and internal channels coupling.
         // We drive these channels through the top proc.
-        let (spi_cs_s, spi_cs_r) = chan<u1, 0>("spi-cs");
         let (spi_di_s, spi_di_r) = chan<u1, 1>("spi-di");
-        let (spi_do_s, spi_do_r) = chan<u1, 0>("spi-do");
 
         // Spi consumer is the polynomial sampler
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
@@ -89,9 +85,7 @@ impl Top {
             inputs: ui_in, outputs: uo_out,
 
             // Spi.
-            spi_cs: spi_cs_s,
             spi_di: spi_di_s,
-            spi_do: spi_do_r,
 
             // Polynomial sampling stuff.
             want_poly_sample: poly_want_s,
