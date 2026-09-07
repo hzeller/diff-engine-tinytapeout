@@ -1,0 +1,22 @@
+name: docs
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install nix
+        uses: cachix/install-nix-action@v31
+
+      # info.yaml lists src/project.sv and src/top.sv; the docs tool checks they exist.
+      - name: Generate Verilog sources (DSLX -> src/)
+        run: nix develop --command make
+
+      - name: Build docs
+        uses: TinyTapeout/tt-gds-action/docs@ttsky26c
