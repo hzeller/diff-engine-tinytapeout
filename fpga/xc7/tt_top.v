@@ -1,4 +1,4 @@
-// Arty A7-35 harness for the Tiny Tapeout wrapper (tt_um_lromor_xls).
+// Arty A7-35 harness for the Tiny Tapeout wrapper (tt_um_diff_engine).
 //
 // Minimal pinout: only the top two core inputs and the top two core outputs
 // are brought to the board.
@@ -28,7 +28,7 @@ module top (
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
 
-  tt_um_lromor_xls tt (
+  tt_um_diff_engine tt (
       .clk    (clk),
       .rst_n  (ck_rst),
       .ena    (1'b1),

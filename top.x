@@ -118,31 +118,29 @@ impl Top {
 
         // Maybe we got a result, so attempt to receive one.
         let last_stepdir = read(self.last_stepdir);
-        let (tok, (new_sample, new_dir), got) = recv_non_blocking(tok, self.sample_value_result, (0, u1:0));
+        let (tok, (new_sample, new_dir), _) = recv_non_blocking(tok, self.sample_value_result, (0, u1:0));
 
-        let dir_out = if got {
-            let new_step = (new_sample as uN[W])[W - 2+: u1];
+        let new_step = (new_sample as uN[W])[W - 2+: u1];
 
-            // We only change the direction when steps does.
-            let rising = new_step == u1:1 && last_stepdir.step == u1:0;
-            let falling = new_step == u1:0 && last_stepdir.step == u1:1;
+        // We only change the direction when steps does.
+        let rising = new_step == u1:1 && last_stepdir.step == u1:0;
+        let falling = new_step == u1:0 && last_stepdir.step == u1:1;
 
-            let new_dir = if rising { new_dir } else { last_stepdir.dir };
+        let new_dir = if rising { new_dir } else { last_stepdir.dir };
 
-            write(self.last_stepdir, StepDir{
-                step: new_step,
-                dir: new_dir,
-            });
+        write(self.last_stepdir, StepDir{
+            step: new_step,
+            dir: new_dir,
+        });
 
-            if falling {
-                write(self.step_out, u1:1);
-            };
-            if rising {
-                write(self.step_out, u1:0);
-            };
-            new_dir
-        } else { last_stepdir.dir };
+        if falling {
+            write(self.step_out, u1:1);
+        };
+        if rising {
+            write(self.step_out, u1:0);
+        };
 
+        let dir_out = if rising { new_dir } else { last_stepdir.dir };
         let step_out = read(self.step_out);
 
         // --- Handling off SPI.

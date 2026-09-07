@@ -18,7 +18,7 @@ struct PolynomialRegisters<T: type, DEGREE: u32> {
 #[derive(ToBits)]
 pub struct IterationRequest<T: type, DEGREE: u32> {
     registers: PolynomialRegisters<T, DEGREE>,
-    count: u32,
+    count: u16,
 }
 
 impl IterationRequest<T, DEGREE> {
@@ -34,11 +34,11 @@ impl IterationRequest<T, DEGREE> {
         const EW = bit_count<T>();
         const N = DEGREE + u32:1;
         let regs = for (i, acc): (u32, Regs) in u32:0..N {
-            update(acc, i, x[((N - i - u32:1) * EW + u32:32) +: T])
+            update(acc, i, x[((N - i - u32:1) * EW + u32:16) +: T])
         }(zero!<Regs>());
         IterationRequest {
             registers: PolynomialRegisters { reg: regs },
-            count: x[0 +: u32],
+            count: x[0 +: u16],
         }
     }
 }
@@ -200,7 +200,7 @@ impl SamplerTest {
                 registers: PolynomialRegisters<T, PD> {
                     reg: INITIAL_REGISTERS,
                 },
-                count: SAMPLE_COUNT,
+                count: SAMPLE_COUNT as u16,
             })
         } else {
             tok
