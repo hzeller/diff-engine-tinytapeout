@@ -49,7 +49,7 @@ src/config.json: config.json
 %.test: %.x
 	$(XLS_INTERPRETER) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --alsologtostderr $^
 
-test: top.test spi.test
+test: top.test spi.test iterative_polynomial_sampler.test
 
 # Build (and flash) the current DSLX design for the Arty A7 via the xc7
 # flow. Runs the xc7 dev shell for the FPGA leg, so this works from the
