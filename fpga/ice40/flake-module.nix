@@ -1,5 +1,5 @@
-# iCE40 leg: derive a VPR architecture for the LP8K (TinyFPGA-BX) from the
-# icestorm chipdb. Enter with `nix develop .#ice40`, then `make` here.
+# iCE40 leg: build the TT harness for the TinyFPGA BX (icestorm flow) and the
+# experimental VPR architecture model. Enter with `nix develop .#ice40`, then `make` here.
 { ... }:
 {
   perSystem =
@@ -10,8 +10,10 @@
           self'.packages.vtr
           pkgs.icestorm
           pkgs.python3
-          # Generic LUT4 synthesis for the milestone-1 smoke test.
           pkgs.yosys
+          # Real bitstreams for the TinyFPGA BX: place & route and USB upload.
+          pkgs.nextpnr
+          pkgs.tinyprog
         ];
         ICESTORM = "${pkgs.icestorm}";
       };

@@ -1,0 +1,11 @@
+# TinyFPGA BX pin map for tt_top.v (board names in comments).
+set_io clk      B2   # 16 MHz oscillator
+set_io led      B3   # user LED
+set_io usbpu    B4   # USB pull-up
+set_io spi_sclk A2   # PIN_1
+set_io spi_cs   A1   # PIN_2
+set_io spi_mosi B1   # PIN_3
+set_io spi_miso C2   # PIN_4
+set_io poly_clk C1   # PIN_5
+set_io step     D2   # PIN_6
+set_io dir      D1   # PIN_7
