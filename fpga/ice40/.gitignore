@@ -5,3 +5,4 @@ counter.blif
 *.route
 vpr_stdout.log
 *.rpt
+build/
