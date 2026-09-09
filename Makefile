@@ -1,6 +1,9 @@
 TOP=Top
 DELAY_MODEL=sky130
 PIPELINE_STAGES=2
+CLOCK_PERIOD_PS=100000  # 10Mhz is 100ns period.
+
+OUTPUT_CHANGING_VARS="$(DSLX_STDLIB_PATH) $(PIPELINE_STAGES) $(CLOCK_PERIOD_PS)"
 
 # Could be overriden by environment variable, e.g. to point to local bazel build
 XLS_IR_CONVERTER ?= xls-ir-converter
@@ -20,7 +23,7 @@ all: src/top.sv src/project.sv src/config.json
 # (nix store mtimes are all epoch, so the path can't be a prerequisite).
 XLS_STAMP=.xls-toolchain
 $(XLS_STAMP): FORCE
-	@echo "$(DSLX_STDLIB_PATH)" | cmp -s - $@ || echo "$(DSLX_STDLIB_PATH)" > $@
+	@echo "$(OUTPUT_CHANGING_VARS)" | cmp -s - $@ || echo "$(OUTPUT_CHANGING_VARS)" > $@
 FORCE:
 
 top.ir: top.x spi.x iterative_polynomial_sampler.x
@@ -34,11 +37,13 @@ top.ir: top.x spi.x iterative_polynomial_sampler.x
 # We disable system verilog as yosys has some issues with that.
 src/%.sv: %.opt.ir
 	mkdir -p src
-	$(XLS_CODEGEN) --delay_model=$(DELAY_MODEL) --pipeline_stages=$(PIPELINE_STAGES) \
-	  --module_name=xls_$* --reset=rst_n --reset_active_low \
-	  --materialize_internal_fifos \
-	  --use_system_verilog=false \
-	  --output_verilog_path=$@ $^
+	$(XLS_CODEGEN) --delay_model=$(DELAY_MODEL) \
+          --clock_period_ps=$(CLOCK_PERIOD_PS) \
+          --pipeline_stages=$(PIPELINE_STAGES) \
+          --module_name=xls_$* --reset=rst_n --reset_active_low \
+          --materialize_internal_fifos \
+          --use_system_verilog=false \
+          --output_verilog_path=$@ $^
 
 src/project.sv: wrapper.sv
 	mkdir -p src
