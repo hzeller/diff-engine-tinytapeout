@@ -44,10 +44,9 @@ struct RelevantInputState {
     // SPI state
     spi_cs: u1,
     spi_clk: u1,
-    spi_active: u1,
 
     // polynomial clock.
-    poly_clk_bit: u1,
+    poly_clk: u1,
 }
 
 pub proc Top {
@@ -112,11 +111,17 @@ impl Top {
     fn next(self) {
         let (tok, input) = recv(join(), self.inputs);
         let last = read(self.last);
+        // Fish inputs from the corresponding input bits.
+        let current = RelevantInputState {
+            spi_cs:   input.ui_in[I_SPI_CS_BIT +: u1],
+            spi_clk:  input.ui_in[I_SPI_CLK_BIT +: u1],
+
+            poly_clk: input.ui_in[I_POLY_CLK_BIT +: u1],
+        };
 
         // --- Handling diff engine.
         // Check if we want a new sample, and tell
-        let poly_clk_bit = input.ui_in[I_POLY_CLK_BIT +: u1];
-        let tok = if poly_clk_bit && poly_clk_bit != last.poly_clk_bit {
+        let tok = if current.poly_clk && current.poly_clk != last.poly_clk {
             send(tok, self.want_poly_sample, ())
         } else {
             tok
@@ -149,15 +154,10 @@ impl Top {
         } else { last_stepdir.step };
         let dir_out = new_dir;
 
-        // --- Handling off SPI.
-        // Get previous clk state recorded.
-        let spi_clk = input.ui_in[I_SPI_CLK_BIT +: u1];
-        let spi_clk_rising = last.spi_clk == 0 && spi_clk == 1;
-
-        // Previous and current tick are all zero. We are in a ongoing active state.
-        let spi_cs = input.ui_in[I_SPI_CS_BIT +: u1];
-        let spi_active = spi_cs == 0 && last.spi_cs == 0;
-        let transfer_finished = last.spi_active && spi_active != last.spi_active;
+        // --- Handling SPI.
+        let spi_clk_rising = last.spi_clk == 0 && current.spi_clk == 1;
+        let spi_active = current.spi_cs == 0;
+        let transfer_finished = last.spi_cs == 0 && current.spi_cs == 1;
 
         // Either we got a clock while active, or notice transfer to be finished.
         let tok = if (spi_active && spi_clk_rising) | transfer_finished {
@@ -185,13 +185,7 @@ impl Top {
             uio_oe: u8:0,          // all bidirectionals are inputs
         });
 
-        // Update new state.
-        write(self.last, RelevantInputState {
-            spi_cs,
-            spi_clk,
-            spi_active,
-
-            poly_clk_bit,
-        });
+        // Remember state to compare and detect edges.
+        write(self.last, current);
     }
 }
