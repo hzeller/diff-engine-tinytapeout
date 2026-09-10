@@ -7,7 +7,6 @@ import std;
 
 struct FifoBuffer<WORD_BITS: u32> {
     buffer: uN[WORD_BITS],
-    count: uN[std::clog2(WORD_BITS) + 1],
 }
 
 impl FifoBuffer<WORD_BITS> {
@@ -16,10 +15,17 @@ impl FifoBuffer<WORD_BITS> {
     }
 }
 
+// TODO: better model the _either_ data _or_ done situation
+pub struct SpiInput {
+    data_bit: u1,       // a data bit if active transmission.
+    send_to_sink: u1,   // 'true' when done otherwise data is valid.
+}
+
 // Model a simple shift register.
 pub proc SerialInParallelOut<T: type, WORD_BITS: u32> {
-    // We expect this channel to be filled whenever there is anew bit
-    source: chan<u1> in,
+    // We expect this channel to be filled whenever there is a new bit or
+    // transmission ends.
+    source: chan<SpiInput> in,
 
     // Channel used by the consumer to receive parallel data.
     sink: chan<T> out,
@@ -29,9 +35,7 @@ pub proc SerialInParallelOut<T: type, WORD_BITS: u32> {
 }
 
 impl SerialInParallelOut<T, WORD_BITS> {
-    const WORD_BITS_SIZE = std::clog2(WORD_BITS);
-
-    pub fn new(source: chan<u1> in, sink: chan<T> out) -> Self {
+    pub fn new(source: chan<SpiInput> in, sink: chan<T> out) -> Self {
         SerialInParallelOut {
             source: source,
             sink: sink,
@@ -41,22 +45,12 @@ impl SerialInParallelOut<T, WORD_BITS> {
 
     fn next(self) {
         let state = read(self.state);
-        let tok = join();
-
-        // Did we just receive a full word?
-        let (tok, v) = recv(tok, self.source);
-        // Shift in from the LSB end: the first bit received ends up in the MSB,
-        // which is the ordering the array-based version produced.
-        let new_buffer = (state.buffer << uN[WORD_BITS]:1) | (v as uN[WORD_BITS]);
-        let new_count = state.count + uN[WORD_BITS_SIZE + 1]:1;
-        if new_count == WORD_BITS as uN[WORD_BITS_SIZE + 1] {
-            send(join(), self.sink, T::from_bits(new_buffer));
-            write(self.state, FifoBuffer<WORD_BITS>::default());
+        let (tok, input) = recv(join(), self.source);
+        if input.send_to_sink {
+            send(tok, self.sink, T::from_bits(state.buffer));
         } else {
-            write(self.state, FifoBuffer{
-                buffer: new_buffer,
-                count: new_count,
-            });
+            // Shift in from the LSB end: the first bit received ends up in the MSB,
+            write(self.state, FifoBuffer { buffer: (state.buffer << 1)[1:] ++ input.data_bit });
         }
     }
 }
@@ -70,7 +64,7 @@ impl Word8 {
 #[test]
 proc SerialInParallelOutTest {
     // Mock serial data sent to our SIPO.
-    serial_in: chan<u1> out,
+    serial_in: chan<SpiInput> out,
 
     // Parallel data received from the test proc perspective.
     parallel_out: chan<Word8> in,
@@ -90,7 +84,7 @@ impl SerialInParallelOutTest {
     const SAMPLE_BITS_COUNT = u32:32;
 
     fn new(done: chan<bool> out) -> Self {
-        let (serial_in_s, serial_in_r) = chan<u1>("serial-in");
+        let (serial_in_s, serial_in_r) = chan<SpiInput>("serial-in");
         let (parallel_out_s, parallel_out_r) = chan<Word8>("parallel-out");
         let sipo = SerialInParallelOut<Word8, WORD_BITS>::new(serial_in_r, parallel_out_s);
         sipo.spawn();
@@ -98,8 +92,8 @@ impl SerialInParallelOutTest {
         SerialInParallelOutTest {
             serial_in: serial_in_s,
             parallel_out: parallel_out_r,
-            sent_bits_count: u32:0,
-            received_words_count: u32:0,
+            sent_bits_count: 0,
+            received_words_count: 0,
             done: done,
         }
     }
@@ -123,9 +117,9 @@ impl SerialInParallelOutTest {
         ];
 
         // Receive data.
-        let (_, v, got_word) = recv_non_blocking(join(), self.parallel_out, Word8 { v: u8:0 });
+        let (tok, v, got_word) = recv_non_blocking(join(), self.parallel_out, Word8 { v: u8:0 });
         if got_word {
-            trace_fmt!("received word: 0x{:x}", v.v);
+            trace_fmt!("received word: {:#x} (0b{:0b})", v.v, v.v);
             assert_eq(v.v, EXPECTED_WORDS[received_words_count]);
             write(self.received_words_count, received_words_count + u32:1);
             if sent_all {
@@ -137,8 +131,18 @@ impl SerialInParallelOutTest {
         if !sent_all {
             // Send data.
             let serial_value = SAMPLE_DATA[sent_bits_count];
-            send(tok, self.serial_in, serial_value);
-            write(self.sent_bits_count, sent_bits_count + 1);
+            let tok = send(tok, self.serial_in, SpiInput {
+                data_bit: serial_value,
+                send_to_sink: false,
+            });
+            let sent_bits_count = sent_bits_count + 1;
+            write(self.sent_bits_count, sent_bits_count);
+            if (sent_bits_count % WORD_BITS == 0) {
+                send(tok, self.serial_in, SpiInput {
+                    data_bit: 0,
+                    send_to_sink: true,
+                });
+            };
         };
     }
 }

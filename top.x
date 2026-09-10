@@ -40,13 +40,23 @@ struct StepDir {
     dir: u1,
 }
 
+struct RelevantInputState {
+    // SPI state
+    spi_cs: u1,
+    spi_clk: u1,
+    spi_active: u1,
+
+    // polynomial clock.
+    poly_clk_bit: u1,
+}
+
 pub proc Top {
     // Ports to the external world.
     inputs: chan<Inputs> in,
     outputs: chan<Outputs> out,
 
     // Internal stuff.
-    spi_di: chan<u1> out,
+    spi_source: chan<spi::SpiInput> out,
 
     want_poly_sample:    chan<()> out,
     sample_value_result: chan<(PolynomialNumber, u1)> in,
@@ -55,7 +65,7 @@ pub proc Top {
     // Implement a 64 cycles delay for step.
     rising_delay_counter: u6,
 
-    last_input: Inputs,
+    last: RelevantInputState,
 }
 
 impl Top {
@@ -64,14 +74,14 @@ impl Top {
     fn new(ui_in: chan<Inputs> in, uo_out: chan<Outputs> out) -> Self {
         // Spi ports and internal channels coupling.
         // We drive these channels through the top proc.
-        let (spi_di_s, spi_di_r) = chan<u1, 1>("spi-di");
+        let (spi_source_s, spi_source_r) = chan<spi::SpiInput, 1>("spi-di");
 
         // Spi consumer is the polynomial sampler
         let (poly_req_s, poly_req_r) = chan<PolyRequest, 0>("poly-request");
 
         // Instantiate the spi proc.
         // If this assert failes, ensure you udpate the type below. Quirk of xls.
-        let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_di_r, poly_req_s);
+        let sipo = spi::SerialInParallelOut<PolyRequest, SPI_WORD_BITS>::new(spi_source_r, poly_req_s);
         sipo.spawn();
 
         // Wire up polynomial sampler
@@ -87,7 +97,7 @@ impl Top {
             inputs: ui_in, outputs: uo_out,
 
             // Spi.
-            spi_di: spi_di_s,
+            spi_source: spi_source_s,
 
             // Polynomial sampling stuff.
             want_poly_sample: poly_want_s,
@@ -95,18 +105,18 @@ impl Top {
             last_stepdir: StepDir{  ..zero!<StepDir>() },
             rising_delay_counter: u6:0,
 
-            last_input: Inputs { ..zero!<Inputs>() },
+            last: RelevantInputState{ ..zero!<RelevantInputState>() },
         }
     }
 
     fn next(self) {
         let (tok, input) = recv(join(), self.inputs);
-        let last_input = read(self.last_input);
+        let last = read(self.last);
 
         // --- Handling diff engine.
         // Check if we want a new sample, and tell
         let poly_clk_bit = input.ui_in[I_POLY_CLK_BIT +: u1];
-        let tok = if (poly_clk_bit && poly_clk_bit != last_input.ui_in[I_POLY_CLK_BIT +: u1]) {
+        let tok = if poly_clk_bit && poly_clk_bit != last.poly_clk_bit {
             send(tok, self.want_poly_sample, ())
         } else {
             tok
@@ -142,21 +152,20 @@ impl Top {
         // --- Handling off SPI.
         // Get previous clk state recorded.
         let spi_clk = input.ui_in[I_SPI_CLK_BIT +: u1];
+        let spi_clk_rising = last.spi_clk == 0 && spi_clk == 1;
+
+        // Previous and current tick are all zero. We are in a ongoing active state.
         let spi_cs = input.ui_in[I_SPI_CS_BIT +: u1];
-        let spi_di = input.ui_in[I_SPI_DI_BIT +: u1];
+        let spi_active = spi_cs == 0 && last.spi_cs == 0;
+        let transfer_finished = last.spi_active && spi_active != last.spi_active;
 
-        let last_spi_clk = last_input.ui_in[I_SPI_CLK_BIT +: u1];
-        let last_spi_cs = last_input.ui_in[I_SPI_CS_BIT +: u1];
-
-        let rising = last_spi_clk == 0 && spi_clk == 1;
-
-        // Previous and current tick are all zero. We are in a correct active state.
-        let active = spi_cs == 0 && last_spi_cs == 0;
-
-        // Chip select high, nothing to do here, keep the clock state high.
-        // We follow CPHA 1.
-        let tok = if active && rising {
-            send(tok, self.spi_di, spi_di)
+        // Either we got a clock while active, or notice transfer to be finished.
+        let tok = if (spi_active && spi_clk_rising) | transfer_finished {
+            let spi_di_bit = input.ui_in[I_SPI_DI_BIT +: u1];
+            send(tok, self.spi_source, spi::SpiInput {
+                data_bit: spi_di_bit,
+                send_to_sink: transfer_finished,
+            })
         } else {
             tok
         };
@@ -177,6 +186,12 @@ impl Top {
         });
 
         // Update new state.
-        write(self.last_input, input);
+        write(self.last, RelevantInputState {
+            spi_cs,
+            spi_clk,
+            spi_active,
+
+            poly_clk_bit,
+        });
     }
 }
