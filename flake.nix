@@ -33,10 +33,10 @@
           # same tarball layout as the official releases.
           xls = pkgs.stdenv.mkDerivation rec {
             pname = "xls";
-            version = "v0.0.0-10631-g18a426591";
+            version = "v0.0.0-10704-g0a7c502cc";
             src = pkgs.fetchurl {
-              url = "https://github.com/lromor/xls/releases/download/nix-${version}/xls-${version}-linux-x64.tar.gz";
-              hash = "sha256-r2fow+mMhdmJsFjRMPu0NcwtjZ6UVrMo8nOkUIDHfhk=";
+              url = "https://github.com/google/xls/releases/download/${version}/xls-${version}-linux-x64.tar.gz";
+              hash = "sha256-YuqtaelUU3EXlIWvgggARVXDqetqA3+TWgsVTwgZT3Q=";
             };
             nativeBuildInputs = [ pkgs.makeWrapper ];
             installPhase = ''
