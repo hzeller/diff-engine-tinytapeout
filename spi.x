@@ -11,7 +11,7 @@ struct FifoBuffer<WORD_BITS: u32> {
 
 impl FifoBuffer<WORD_BITS> {
     fn default() -> Self {
-        FifoBuffer<WORD_BITS> { ..zero!<FifoBuffer<WORD_BITS>>() }
+        Self { ..zero!<Self>() }
     }
 }
 

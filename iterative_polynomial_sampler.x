@@ -25,7 +25,7 @@ impl IterationRequest<T, DEGREE> {
     type Regs = T[DEGREE + 1];
 
     fn default() -> Self {
-        IterationRequest<T, DEGREE> { ..zero!<IterationRequest<T, DEGREE>>() }
+        Self { ..zero!<Self>() }
     }
 
     // Field 0 flattens into the MSBs: `registers` sits above `count`, and

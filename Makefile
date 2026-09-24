@@ -3,8 +3,6 @@ DELAY_MODEL=sky130
 PIPELINE_STAGES=2
 CLOCK_PERIOD_PS=100000  # 10Mhz is 100ns period.
 
-OUTPUT_CHANGING_VARS="$(DSLX_STDLIB_PATH) $(PIPELINE_STAGES) $(CLOCK_PERIOD_PS)"
-
 # Could be overriden by environment variable, e.g. to point to local bazel build
 XLS_IR_CONVERTER ?= xls-ir-converter
 XLS_INTERPRETER  ?= xls-interpreter
@@ -12,6 +10,8 @@ XLS_OPT          ?= xls-opt
 XLS_CODEGEN      ?= xls-codegen
 
 YOSYS_OUT_DIR ?= yosys-out
+
+DSLX_OPTIONS=--dslx_stdlib_path=$(DSLX_STDLIB_PATH)
 
 # Tiny Tapeout reads Verilog sources from src/ (see info.yaml). The whole
 # directory is a build product: git only tracks main.x, wrapper.sv and
@@ -22,6 +22,7 @@ all: src/top.sv src/project.sv src/config.json
 # holds the toolchain's store path and only gets rewritten when it differs
 # (nix store mtimes are all epoch, so the path can't be a prerequisite).
 XLS_STAMP=.xls-toolchain
+OUTPUT_CHANGING_VARS="$(DSLX_OPTIONS) $(PIPELINE_STAGES) $(CLOCK_PERIOD_PS)"
 $(XLS_STAMP): FORCE
 	@echo "$(OUTPUT_CHANGING_VARS)" | cmp -s - $@ || echo "$(OUTPUT_CHANGING_VARS)" > $@
 FORCE:
@@ -29,7 +30,7 @@ FORCE:
 top.ir: top.x spi.x iterative_polynomial_sampler.x
 
 %.ir: %.x $(XLS_STAMP)
-	$(XLS_IR_CONVERTER) --top=$(TOP) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --output_file=$@ $<
+	$(XLS_IR_CONVERTER) --top=$(TOP) $(DSLX_OPTIONS) --output_file=$@ $<
 
 %.opt.ir: %.ir
 	$(XLS_OPT) --output_path=$@ $^
@@ -54,7 +55,7 @@ src/config.json: config.json
 	cp $< $@
 
 %.test: %.x
-	$(XLS_INTERPRETER) --dslx_stdlib_path=$(DSLX_STDLIB_PATH) --alsologtostderr $^
+	$(XLS_INTERPRETER) $(DSLX_OPTIONS) --compare=jit --alsologtostderr $^
 
 test: top.test spi.test iterative_polynomial_sampler.test
 
