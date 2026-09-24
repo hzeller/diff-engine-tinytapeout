@@ -104,7 +104,7 @@ impl SerialInParallelOutTest {
         let received_words_count = read(self.received_words_count);
         let sent_all = sent_bits_count == 32;
 
-        let is_starting = sent_bits_count == u32:0;
+        let is_starting = sent_bits_count == 0;
         if is_starting {
             trace_fmt!("start: sending serial data");
         };
@@ -121,7 +121,7 @@ impl SerialInParallelOutTest {
         if got_word {
             trace_fmt!("received word: {:#x} (0b{:0b})", v.v, v.v);
             assert_eq(v.v, EXPECTED_WORDS[received_words_count]);
-            write(self.received_words_count, received_words_count + u32:1);
+            write(self.received_words_count, received_words_count + 1);
             if sent_all {
                 assert_eq(received_words_count, 3);
                 send(tok, self.done, true);

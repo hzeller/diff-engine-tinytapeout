@@ -32,9 +32,9 @@ impl IterationRequest<T, DEGREE> {
     // register element 0 is the most significant of those.
     pub fn from_bits<W: u32>(x: uN[W]) -> Self {
         const EW = bit_count<T>();
-        const N = DEGREE + u32:1;
-        let regs = for (i, acc): (u32, Regs) in u32:0..N {
-            update(acc, i, x[((N - i - u32:1) * EW + u32:16) +: T])
+        const N = DEGREE + 1;
+        let regs = for (i, acc): (u32, Regs) in 0..N {
+            update(acc, i, x[((N - i - 1) * EW + 16) +: T])
         }(zero!<Regs>());
         IterationRequest {
             registers: PolynomialRegisters { reg: regs },
@@ -123,7 +123,7 @@ impl IterativePolynomialSampler<T, DEGREE> {
                 update(reg, i + 1, reg[i + 1] + reg[i])
             }(state.registers.reg);
 
-            let dir = std::msb(reg[DEGREE - u32:1] as uN[W]);
+            let dir = std::msb(reg[DEGREE - 1] as uN[W]);
 
             // The last register holds the new polynomial value P(x+dx).
             send(tok, self.sample_out, (reg[DEGREE], dir));
