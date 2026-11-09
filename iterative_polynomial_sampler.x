@@ -7,7 +7,7 @@ import std;
 
 // Registers to represent a polynomial to be calculated. It has one more elment
 // than the Polynomials degree.
-#[derive(ToBits)]
+#[derive(ToBits, Default)]
 struct PolynomialRegisters<T: type, DEGREE: u32> {
     reg: T[DEGREE + 1],
 }
@@ -15,7 +15,7 @@ struct PolynomialRegisters<T: type, DEGREE: u32> {
 // An iteration request for a proc is the newly initialized registers
 // and the number of samples we want the proc to emit.
 // The iteration request also represents our state.
-#[derive(ToBits)]
+#[derive(ToBits, Default)]
 pub struct IterationRequest<T: type, DEGREE: u32> {
     registers: PolynomialRegisters<T, DEGREE>,
     count: u16,
@@ -23,10 +23,6 @@ pub struct IterationRequest<T: type, DEGREE: u32> {
 
 impl IterationRequest<T, DEGREE> {
     type Regs = T[DEGREE + 1];
-
-    fn default() -> Self {
-        Self { ..zero!<Self>() }
-    }
 
     // Field 0 flattens into the MSBs: `registers` sits above `count`, and
     // register element 0 is the most significant of those.

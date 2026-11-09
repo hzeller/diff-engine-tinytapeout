@@ -5,14 +5,9 @@ import std;
 #![feature(generics)]
 #![feature(explicit_state_access)]
 
+#[derive(Default)]
 struct FifoBuffer<WORD_BITS: u32> {
     buffer: uN[WORD_BITS],
-}
-
-impl FifoBuffer<WORD_BITS> {
-    fn default() -> Self {
-        Self { ..zero!<Self>() }
-    }
 }
 
 // TODO: better model the _either_ data _or_ done situation
